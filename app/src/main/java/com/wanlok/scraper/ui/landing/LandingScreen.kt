@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.wanlok.scraper.ui.theme.ScraperTheme
 
 @Composable
@@ -20,8 +21,13 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Hello Android!")
-        Button(onClick = { Log.d("LandingScreen", "hello world") }) {
-            Text(text = "Get started")
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { Log.d("LandingScreen", "Start clicked") }) {
+                Text(text = "Start")
+            }
+            Button(onClick = { Log.d("LandingScreen", "Stop clicked") }) {
+                Text(text = "Stop")
+            }
         }
     }
 }
