@@ -2,7 +2,10 @@ package com.wanlok.scraper.ui.landing
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,16 +38,23 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         val isRunning by isRunningFlow.collectAsState(initial = false)
 
         Text(text = "Hello Android!")
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Button(
                 onClick = { PostScheduler.start(context) },
-                enabled = !isRunning
+                enabled = !isRunning,
+                modifier = Modifier.weight(1f)
             ) {
                 Text(text = "Start")
             }
             Button(
                 onClick = { PostScheduler.stop(context) },
-                enabled = isRunning
+                enabled = isRunning,
+                modifier = Modifier.weight(1f)
             ) {
                 Text(text = "Stop")
             }
