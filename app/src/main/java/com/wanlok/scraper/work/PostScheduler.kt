@@ -6,6 +6,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.concurrent.TimeUnit
 
 object PostScheduler {
@@ -28,4 +30,10 @@ object PostScheduler {
     fun stop(context: Context) {
         WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
     }
+
+    // Periodic work sits in ENQUEUED between runs; it only becomes finished (CANCELLED) after stop().
+    fun isRunning(context: Context): Flow<Boolean> =
+        WorkManager.getInstance(context)
+            .getWorkInfosForUniqueWorkFlow(WORK_NAME)
+            .map { infos -> infos.any { !it.state.isFinished } }
 }
