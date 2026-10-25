@@ -5,6 +5,7 @@ import android.os.Build
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.wanlok.scraper.log.TerminalLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -15,6 +16,7 @@ class PostWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
+            TerminalLog.append(applicationContext, "POST $ENDPOINT")
             val connection = URL(ENDPOINT).openConnection() as HttpURLConnection
             try {
                 connection.requestMethod = "POST"
@@ -27,12 +29,14 @@ class PostWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
 
                 val code = connection.responseCode
                 Log.d(TAG, "POST $ENDPOINT -> $code")
+                TerminalLog.append(applicationContext, "-> $code")
                 if (code in 200..299) Result.success() else Result.retry()
             } finally {
                 connection.disconnect()
             }
         } catch (e: Exception) {
             Log.e(TAG, "POST failed", e)
+            TerminalLog.append(applicationContext, "error: ${e.message}")
             Result.retry()
         }
     }
