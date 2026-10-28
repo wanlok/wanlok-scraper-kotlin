@@ -9,9 +9,11 @@ SDK: `minSdk` 24, `targetSdk` 36, `compileSdk` 37.
 
 ```
 com.wanlok.scraper
-├── MainActivity.kt        entry point: setContent { ScraperTheme { Scaffold { LandingScreen } } }
+├── MainActivity.kt        entry point: setContent { ScraperTheme { AppNavigation() } }
 ├── ui
+│   ├── navigation/        AppNavigation.kt (NavigationSuiteScaffold), AppDestination.kt (top-level screens)
 │   ├── landing/           LandingScreen.kt (terminal log + Start/Stop buttons)
+│   ├── settings/          SettingsScreen.kt (placeholder)
 │   └── theme/             Color.kt, Theme.kt, Type.kt
 ├── work
 │   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
@@ -19,6 +21,10 @@ com.wanlok.scraper
 └── log
     └── TerminalLog.kt     lines shown on screen, persisted to a file
 ```
+
+## Navigation
+
+`NavigationSuiteScaffold` shows the top-level screens (Home, Settings) as a bottom bar in portrait and a navigation rail on wider windows such as landscape. The selected screen is held in `rememberSaveable` state, so it survives rotation. Navigation Compose is not used yet; add it when a screen needs drill-down destinations or a back stack.
 
 ## Data flow
 
