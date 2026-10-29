@@ -19,10 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import com.wanlok.scraper.ui.landing.LandingScreen
 import com.wanlok.scraper.ui.settings.SettingsScreen
+import com.wanlok.scraper.ui.tasks.TasksScreen
 
 @Composable
 fun AppNavigation() {
-    var current by rememberSaveable { mutableStateOf(AppDestination.Landing) }
+    var current by rememberSaveable { mutableStateOf(AppDestination.Home) }
 
     // The default picks a bottom bar whenever the height is compact, which includes a phone in
     // landscape. Use the side rail there instead; otherwise keep the default choice.
@@ -49,7 +50,8 @@ fun AppNavigation() {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             val screenModifier = Modifier.padding(innerPadding)
             when (current) {
-                AppDestination.Landing -> LandingScreen(modifier = screenModifier)
+                AppDestination.Home -> LandingScreen(modifier = screenModifier)
+                AppDestination.Tasks -> TasksScreen(modifier = screenModifier)
                 AppDestination.Settings -> SettingsScreen(modifier = screenModifier)
             }
         }

@@ -13,6 +13,7 @@ com.wanlok.scraper
 ├── ui
 │   ├── navigation/        AppNavigation.kt (NavigationSuiteScaffold), AppDestination.kt (top-level screens)
 │   ├── landing/           LandingScreen.kt (terminal log + Start/Stop buttons)
+│   ├── tasks/             TasksScreen.kt (placeholder)
 │   ├── settings/          SettingsScreen.kt (placeholder)
 │   └── theme/             Color.kt, Theme.kt, Type.kt
 ├── work
@@ -24,7 +25,7 @@ com.wanlok.scraper
 
 ## Navigation
 
-`NavigationSuiteScaffold` shows the top-level screens (Home, Settings) as a bottom bar in portrait and a navigation rail on wider windows such as landscape. The selected screen is held in `rememberSaveable` state, so it survives rotation. Navigation Compose is not used yet; add it when a screen needs drill-down destinations or a back stack.
+`NavigationSuiteScaffold` shows the top-level screens (Home, Tasks, Settings) as a bottom bar in portrait and a navigation rail on wider windows such as landscape. The selected screen is held in `rememberSaveable` state, so it survives rotation. Navigation Compose is not used yet; add it when a screen needs drill-down destinations or a back stack.
 
 ## Data flow
 
