@@ -1,21 +1,32 @@
 package com.wanlok.scraper.ui.tasks
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.wanlok.scraper.ui.theme.ScraperTheme
 
+// Placeholder data until tasks come from a real source.
+private val sampleTasks = List(20) { index ->
+    Task(id = index, title = "Task ${index + 1}", description = "Placeholder description")
+}
+
 @Composable
-fun TasksScreen(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Tasks")
+fun TasksScreen(modifier: Modifier = Modifier, tasks: List<Task> = sampleTasks) {
+    LazyColumn(modifier = modifier.fillMaxSize()) {
+        // The key lets Compose keep each row's identity when the list changes.
+        items(tasks, key = { it.id }) { task ->
+            ListItem(
+                headlineContent = { Text(text = task.title) },
+                supportingContent = { Text(text = task.description) }
+            )
+            HorizontalDivider()
+        }
     }
 }
 
