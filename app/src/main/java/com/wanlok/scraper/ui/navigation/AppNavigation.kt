@@ -1,10 +1,7 @@
 package com.wanlok.scraper.ui.navigation
 
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -15,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import com.wanlok.scraper.ui.landing.LandingScreen
 import com.wanlok.scraper.ui.settings.SettingsScreen
@@ -47,13 +43,11 @@ fun AppNavigation() {
             }
         }
     ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            val screenModifier = Modifier.padding(innerPadding)
-            when (current) {
-                AppDestination.Home -> LandingScreen(modifier = screenModifier)
-                AppDestination.Tasks -> TasksScreen(modifier = screenModifier)
-                AppDestination.Settings -> SettingsScreen(modifier = screenModifier)
-            }
+        // Each screen has its own Scaffold, so it can have its own top bar.
+        when (current) {
+            AppDestination.Home -> LandingScreen()
+            AppDestination.Tasks -> TasksScreen()
+            AppDestination.Settings -> SettingsScreen()
         }
     }
 }

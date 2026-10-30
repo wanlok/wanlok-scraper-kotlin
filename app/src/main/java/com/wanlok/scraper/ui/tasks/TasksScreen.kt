@@ -1,11 +1,19 @@
 package com.wanlok.scraper.ui.tasks
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -16,16 +24,39 @@ private val sampleTasks = List(20) { index ->
     Task(id = index, title = "Task ${index + 1}", description = "Placeholder description")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TasksScreen(modifier: Modifier = Modifier, tasks: List<Task> = sampleTasks) {
-    LazyColumn(modifier = modifier.fillMaxSize()) {
-        // The key lets Compose keep each row's identity when the list changes.
-        items(tasks, key = { it.id }) { task ->
-            ListItem(
-                headlineContent = { Text(text = task.title) },
-                supportingContent = { Text(text = task.description) }
+fun TasksScreen(
+    modifier: Modifier = Modifier,
+    tasks: List<Task> = sampleTasks,
+    onAddClick: () -> Unit = {}
+) {
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Tasks") },
+                actions = {
+                    IconButton(onClick = onAddClick) {
+                        Icon(Icons.Filled.Add, contentDescription = "Add task")
+                    }
+                }
             )
-            HorizontalDivider()
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
+            // The key lets Compose keep each row's identity when the list changes.
+            items(tasks, key = { it.id }) { task ->
+                ListItem(
+                    headlineContent = { Text(text = task.title) },
+                    supportingContent = { Text(text = task.description) }
+                )
+                HorizontalDivider()
+            }
         }
     }
 }
