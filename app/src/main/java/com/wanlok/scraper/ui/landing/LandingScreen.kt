@@ -2,6 +2,7 @@ package com.wanlok.scraper.ui.landing
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,7 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.wanlok.scraper.log.TerminalLog
+import com.wanlok.scraper.log.LogManager
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import com.wanlok.scraper.work.PostScheduler
 import kotlinx.coroutines.Dispatchers
@@ -50,11 +51,11 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         if (isPreview) flowOf(false) else PostScheduler.isRunning(context)
     }
     val isRunning by isRunningFlow.collectAsState(initial = false)
-    val lines by (if (isPreview) remember { MutableStateFlow(sampleLines) } else TerminalLog.lines)
+    val lines by (if (isPreview) remember { MutableStateFlow(sampleLines) } else LogManager.lines)
         .collectAsState()
 
     LaunchedEffect(Unit) {
-        if (!isPreview) withContext(Dispatchers.IO) { TerminalLog.load(context) }
+        if (!isPreview) withContext(Dispatchers.IO) { LogManager.load(context) }
     }
 
     Scaffold(
@@ -67,7 +68,7 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Terminal(
+            LogViewer(
                 lines = lines,
                 modifier = Modifier
                     .weight(1f)
@@ -103,7 +104,7 @@ fun LandingScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Terminal(lines: List<String>, modifier: Modifier = Modifier) {
+private fun LogViewer(lines: List<String>, modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
 
     // Keep the newest line in view.
@@ -111,7 +112,11 @@ private fun Terminal(lines: List<String>, modifier: Modifier = Modifier) {
         if (lines.isNotEmpty()) listState.animateScrollToItem(lines.lastIndex)
     }
 
-    LazyColumn(state = listState, modifier = modifier) {
+    LazyColumn(
+        state = listState,
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 16.dp)
+    ) {
         items(lines) { line ->
             Text(text = line)
         }

@@ -18,7 +18,7 @@ Every event adds a line, formatted `HH:mm:ss  message`:
 - `Started: POST every 15 minutes` and `Stopped`
 - `POST <url>` just before each request, then `-> <status>` or `error: <message>`
 
-Lines are kept in memory and in `terminal.log` (app private storage), last 500 lines, and reloaded when the app starts.
+Lines are saved in one file per day, `logs/yyyyMMdd.txt` (app private storage). The screen shows today's lines and reloads today's file when the app starts. Old files are not deleted automatically.
 
 ## Known limits
 - 15 minutes is WorkManager's minimum and a target, not a promise: Doze, battery saver and some phone makers delay runs.

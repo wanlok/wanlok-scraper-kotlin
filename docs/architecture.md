@@ -20,7 +20,7 @@ com.wanlok.scraper
 │   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
 │   └── PostWorker.kt      one run of the job: sends the POST
 └── log
-    └── TerminalLog.kt     lines shown on screen, persisted to a file
+    └── LogManager.kt      lines shown on screen, persisted to a file
 ```
 
 ## Navigation
@@ -34,9 +34,9 @@ Start tapped -> PostScheduler.start() -> WorkManager (unique periodic work)
                                               |
                                   every ~15 min: PostWorker.doWork()
                                               |
-                              TerminalLog.append(...)  -> terminal.log + StateFlow
+                              LogManager.append(...)   -> logs/yyyyMMdd.txt + StateFlow
                                               |
-                              LandingScreen collects TerminalLog.lines
+                              LandingScreen collects LogManager.lines
 ```
 
 - Button state is not held by the screen. `PostScheduler.isRunning()` reads the job's status from WorkManager, so the buttons are correct after the app is reopened.
