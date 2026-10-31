@@ -2,6 +2,7 @@ package com.wanlok.scraper.server
 
 import android.content.Context
 import com.wanlok.scraper.data.TaskRepository
+import com.wanlok.scraper.work.TaskRunner
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -21,6 +22,12 @@ import java.net.URISyntaxException
 
 /** The task API used by the desktop page. Everything is JSON. */
 fun Route.taskRoutes(context: Context) {
+    // Runs every task now, the same way the periodic job does. Handy for testing.
+    post("/api/run") {
+        TaskRunner.runAll(context)
+        call.respond(HttpStatusCode.NoContent)
+    }
+
     route("/api/tasks") {
         get {
             TaskRepository.load(context)

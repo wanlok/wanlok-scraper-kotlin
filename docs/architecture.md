@@ -2,7 +2,7 @@
 
 Single-Activity Jetpack Compose app (Material 3). Package: `com.wanlok.scraper`.
 
-The app is at an early stage: the periodic job in `work/` is a placeholder for running the saved tasks and will change.
+The app is at an early stage: the periodic job in `work/` runs the saved tasks and logs what it extracts; saving the results is not built yet.
 SDK: `minSdk` 24, `targetSdk` 36, `compileSdk` 37.
 
 ## Layout
@@ -19,7 +19,8 @@ com.wanlok.scraper
 │   └── theme/             Color.kt, Theme.kt, Type.kt
 ├── work
 │   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
-│   └── PostWorker.kt      one run of the job (placeholder, does nothing yet)
+│   ├── PostWorker.kt      one run of the job: runs all the saved tasks
+│   └── TaskRunner.kt      fetches each task's page (Jsoup) and logs the extracted text
 ├── server
 │   ├── ServerService.kt   foreground service that runs the Ktor web server (port 8080)
 │   ├── TaskRoutes.kt      the /api/tasks endpoints (list, add, edit, delete)
@@ -43,7 +44,7 @@ com.wanlok.scraper
 Start tapped -> PostScheduler.start() -> WorkManager (unique periodic work)
              -> ServerService.start() -> foreground service -> Ktor server on port 8080
                                               |
-                                  every ~15 min: PostWorker.doWork()  (placeholder)
+                                  every ~15 min: PostWorker.doWork() -> TaskRunner.runAll()
 
 LogRepository.append(...) -> logs/yyyyMMdd.txt + StateFlow
                                               |

@@ -15,6 +15,7 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
   - `POST /api/tasks` with `{ "name", "url", "selector" }` adds a task and returns it (201). It returns 400 with `{ "error" }` if `name` or `selector` is blank, or `url` is not an http(s) address.
   - `PUT /api/tasks/{id}` with the same body replaces that task, keeping its id, and returns it (200). It has the same 400 errors, or returns 404 if there is no such task.
   - `DELETE /api/tasks/{id}` removes a task (204), or returns 404 if there is no such task.
+- `POST /api/run` runs all saved tasks now, the same code as the periodic job, and returns 204 when they have finished. Results appear in the Home log.
 - On Android 13+, Start first asks for the notification permission. The server starts whether or not it is granted.
 
 ## Planned

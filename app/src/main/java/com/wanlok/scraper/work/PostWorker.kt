@@ -6,6 +6,9 @@ import androidx.work.WorkerParameters
 
 class PostWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
-    // The dummy POST was removed. Running the saved tasks will go here.
-    override suspend fun doWork(): Result = Result.success()
+    // Failures are logged per task, so the job itself always succeeds.
+    override suspend fun doWork(): Result {
+        TaskRunner.runAll(applicationContext)
+        return Result.success()
+    }
 }
