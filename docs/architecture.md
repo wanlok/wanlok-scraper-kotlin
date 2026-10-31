@@ -14,13 +14,14 @@ com.wanlok.scraper
 │   ├── navigation/        AppNavigation.kt (NavigationSuiteScaffold), AppDestination.kt (top-level screens)
 │   ├── landing/           LandingScreen.kt (terminal log + Start/Stop buttons)
 │   ├── tasks/             TasksScreen.kt (placeholder)
-│   ├── settings/          SettingsScreen.kt (placeholder)
+│   ├── settings/          SettingsScreen.kt (scrollable list of settings, saved automatically)
 │   └── theme/             Color.kt, Theme.kt, Type.kt
 ├── work
 │   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
 │   └── PostWorker.kt      one run of the job: sends the POST
-└── log
-    └── LogManager.kt      lines shown on screen, persisted to a file
+└── data
+    ├── LogRepository.kt       lines shown on screen, persisted to a file per day
+    └── SettingsRepository.kt  saved settings (DataStore Preferences), read by the screen and the worker
 ```
 
 ## Navigation
@@ -34,12 +35,13 @@ Start tapped -> PostScheduler.start() -> WorkManager (unique periodic work)
                                               |
                                   every ~15 min: PostWorker.doWork()
                                               |
-                              LogManager.append(...)   -> logs/yyyyMMdd.txt + StateFlow
+                              LogRepository.append(...) -> logs/yyyyMMdd.txt + StateFlow
                                               |
-                              LandingScreen collects LogManager.lines
+                              LandingScreen collects LogRepository.lines
 ```
 
 - Button state is not held by the screen. `PostScheduler.isRunning()` reads the job's status from WorkManager, so the buttons are correct after the app is reopened.
+- Settings are saved automatically (no Save button) when the user presses Done or leaves a field. `PostWorker` reads the saved name on every run, so a change applies to the next POST. A blank name falls back to the device model.
 - There is no ViewModel yet. Add one per screen when a screen gains real logic.
 
 ## Backend

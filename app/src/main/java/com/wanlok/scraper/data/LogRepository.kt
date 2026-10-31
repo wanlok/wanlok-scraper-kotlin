@@ -1,4 +1,4 @@
-package com.wanlok.scraper.log
+package com.wanlok.scraper.data
 
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +14,7 @@ import java.util.Locale
  * possibly while the UI isn't open, so lines are also saved to a file per day (logs/20261031.txt)
  * and today's file is reloaded the next time the app starts.
  */
-object LogManager {
+object LogRepository {
     private const val DIR_NAME = "logs"
 
     private val _lines = MutableStateFlow<List<String>>(emptyList())

@@ -27,7 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.wanlok.scraper.log.LogManager
+import com.wanlok.scraper.data.LogRepository
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import com.wanlok.scraper.work.PostScheduler
 import kotlinx.coroutines.Dispatchers
@@ -51,11 +51,11 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         if (isPreview) flowOf(false) else PostScheduler.isRunning(context)
     }
     val isRunning by isRunningFlow.collectAsState(initial = false)
-    val lines by (if (isPreview) remember { MutableStateFlow(sampleLines) } else LogManager.lines)
+    val lines by (if (isPreview) remember { MutableStateFlow(sampleLines) } else LogRepository.lines)
         .collectAsState()
 
     LaunchedEffect(Unit) {
-        if (!isPreview) withContext(Dispatchers.IO) { LogManager.load(context) }
+        if (!isPreview) withContext(Dispatchers.IO) { LogRepository.load(context) }
     }
 
     Scaffold(
