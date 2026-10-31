@@ -47,17 +47,38 @@ object TaskRepository {
         return task
     }
 
-    private fun toJson(tasks: List<Task>): String {
+    /** Replaces the task with this [id], keeping the id. Returns null if there is no such task. */
+    @Synchronized
+    fun update(context: Context, id: String, name: String, url: String, selector: String): Task? {
+        load(context)
+        val current = _tasks.value
+        if (current.none { it.id == id }) return null
+        val task = Task(id = id, name = name.trim(), url = url.trim(), selector = selector.trim())
+        val updated = current.map { if (it.id == id) task else it }
+        _tasks.value = updated
+        file?.writeText(toJson(updated))
+        return task
+    }
+
+    @Synchronized
+    fun remove(context: Context, id: String): Boolean {
+        load(context)
+        val updated = _tasks.value.filterNot { it.id == id }
+        if (updated.size == _tasks.value.size) return false
+        _tasks.value = updated
+        file?.writeText(toJson(updated))
+        return true
+    }
+
+    fun toJson(task: Task): JSONObject = JSONObject()
+        .put("id", task.id)
+        .put("name", task.name)
+        .put("url", task.url)
+        .put("selector", task.selector)
+
+    fun toJson(tasks: List<Task>): String {
         val array = JSONArray()
-        tasks.forEach {
-            array.put(
-                JSONObject()
-                    .put("id", it.id)
-                    .put("name", it.name)
-                    .put("url", it.url)
-                    .put("selector", it.selector)
-            )
-        }
+        tasks.forEach { array.put(toJson(it)) }
         return array.toString()
     }
 

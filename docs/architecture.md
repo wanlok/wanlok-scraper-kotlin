@@ -22,6 +22,7 @@ com.wanlok.scraper
 │   └── PostWorker.kt      one run of the job (placeholder, does nothing yet)
 ├── server
 │   ├── ServerService.kt   foreground service that runs the Ktor web server (port 8080)
+│   ├── TaskRoutes.kt      the /api/tasks endpoints (list, add, edit, delete)
 │   └── NetworkAddress.kt  the phone's local IPv4 address
 └── data
     ├── WLog.kt                one log: { date, status, content? }

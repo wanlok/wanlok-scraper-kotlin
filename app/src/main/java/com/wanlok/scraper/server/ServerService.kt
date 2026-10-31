@@ -54,9 +54,11 @@ class ServerService : Service() {
     private fun startServer() {
         val address = "http://${NetworkAddress.localIpv4(this) ?: "localhost"}:$PORT"
         try {
+            val page = assets.open("index.html").bufferedReader().use { it.readText() }
             server = embeddedServer(CIO, port = PORT, host = "0.0.0.0") {
                 routing {
-                    get("/") { call.respondText(PAGE, ContentType.Text.Html) }
+                    get("/") { call.respondText(page, ContentType.Text.Html) }
+                    taskRoutes(applicationContext)
                 }
             }.start(wait = false)
         } catch (e: Exception) {
@@ -111,20 +113,7 @@ class ServerService : Service() {
         private const val CHANNEL_ID = "web_server"
         private const val NOTIFICATION_ID = 1
 
-        private const val PAGE = """<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scraper</title>
-</head>
-<body>
-<h1>Scraper</h1>
-<p>The web server is running on this phone.</p>
-</body>
-</html>"""
-
-        fun start(context: Context) {
+fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, ServerService::class.java))
         }
 
