@@ -20,6 +20,9 @@ com.wanlok.scraper
 ├── work
 │   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
 │   └── PostWorker.kt      one run of the job (placeholder, does nothing yet)
+├── server
+│   ├── ServerService.kt   foreground service that runs the Ktor web server (port 8080)
+│   └── NetworkAddress.kt  the phone's local IPv4 address
 └── data
     ├── WLog.kt                one log: { date, status, content? }
     ├── LogStatus.kt           STARTED, STOPPED, TASK_RUNNING, TASK_COMPLETED or TASK_FAILED
@@ -37,6 +40,7 @@ com.wanlok.scraper
 
 ```
 Start tapped -> PostScheduler.start() -> WorkManager (unique periodic work)
+             -> ServerService.start() -> foreground service -> Ktor server on port 8080
                                               |
                                   every ~15 min: PostWorker.doWork()  (placeholder)
 
@@ -49,7 +53,7 @@ TasksScreen collects TaskRepository.tasks (tasks.json)
 
 - Button state is not held by the screen. `PostScheduler.isRunning()` reads the job's status from WorkManager, so the icons are correct after the app is reopened.
 - Settings are saved automatically (no Save button) when the user presses Done or leaves a field. The saved name is not used by anything right now; it was sent in the removed dummy POST.
-- Tasks are not added in the Android UI. The plan is a web server on the phone that lets a desktop browser add them (see `features/`).
+- Tasks are not added in the Android UI. Start launches a web server on the phone for a desktop browser (see `features/web-server.md`); adding tasks through it comes next.
 - There is no ViewModel yet. Add one per screen when a screen gains real logic.
 
 ## Backend

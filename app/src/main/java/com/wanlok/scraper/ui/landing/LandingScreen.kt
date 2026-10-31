@@ -1,5 +1,10 @@
 package com.wanlok.scraper.ui.landing
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -19,9 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.ContextCompat
 import com.wanlok.scraper.data.LogRepository
 import com.wanlok.scraper.data.LogStatus
 import com.wanlok.scraper.data.WLog
+import com.wanlok.scraper.server.ServerService
 import com.wanlok.scraper.ui.icons.Stop
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import com.wanlok.scraper.work.PostScheduler
@@ -57,6 +64,16 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         if (!isPreview) withContext(Dispatchers.IO) { LogRepository.load(context) }
     }
 
+    // Start runs the periodic job and the web server together.
+    fun start() {
+        PostScheduler.start(context)
+        ServerService.start(context)
+    }
+    // Android 13+ asks before showing the server's notification. Start either way.
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { start() }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -64,13 +81,28 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                 title = { Text("Home") },
                 actions = {
                     IconButton(
-                        onClick = { PostScheduler.start(context) },
+                        onClick = {
+                            val needsPermission =
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                    ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.POST_NOTIFICATIONS
+                                    ) != PackageManager.PERMISSION_GRANTED
+                            if (needsPermission) {
+                                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                start()
+                            }
+                        },
                         enabled = !isRunning
                     ) {
                         Icon(Icons.Filled.PlayArrow, contentDescription = "Start")
                     }
                     IconButton(
-                        onClick = { PostScheduler.stop(context) },
+                        onClick = {
+                            PostScheduler.stop(context)
+                            ServerService.stop(context)
+                        },
                         enabled = isRunning
                     ) {
                         Icon(Icons.Filled.Stop, contentDescription = "Stop")
