@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import com.wanlok.scraper.data.LogRepository
+import com.wanlok.scraper.data.LogStatus
 import com.wanlok.scraper.data.WLog
 import com.wanlok.scraper.ui.icons.Stop
 import com.wanlok.scraper.ui.theme.ScraperTheme
@@ -33,9 +34,10 @@ import java.util.Date
 private val now = System.currentTimeMillis()
 
 private val sampleLogs = listOf(
-    WLog(date = Date(now - 2_000), content = "Started"),
-    WLog(date = Date(now - 1_000), content = "Task 1"),
-    WLog(date = Date(now), content = "Task 2")
+    WLog(date = Date(now - 3_000), status = LogStatus.STARTED),
+    WLog(date = Date(now - 2_000), status = LogStatus.TASK_RUNNING, content = "Task 1"),
+    WLog(date = Date(now - 1_000), status = LogStatus.TASK_COMPLETED, content = "Task 1"),
+    WLog(date = Date(now), status = LogStatus.TASK_FAILED, content = "Task 2")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

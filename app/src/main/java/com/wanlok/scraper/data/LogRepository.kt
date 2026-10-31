@@ -34,9 +34,9 @@ object LogRepository {
     }
 
     @Synchronized
-    fun append(context: Context, content: String) {
+    fun append(context: Context, status: LogStatus, content: String? = null) {
         load(context)
-        val log = WLog(date = Date(), content = content)
+        val log = WLog(date = Date(), status = status, content = content)
         val today = dayOf(log.date)
         // The app can stay alive past midnight, so move to the new day's file when the date changes.
         if (today != day) switchTo(today)
@@ -50,16 +50,26 @@ object LogRepository {
         _logs.value = if (file.exists()) file.readLines().mapNotNull(::parse) else emptyList()
     }
 
-    private fun toJson(log: WLog): String =
-        JSONObject().put("date", isoFormat().format(log.date)).put("content", log.content).toString()
+    private fun toJson(log: WLog): String {
+        val json = JSONObject().put("date", isoFormat().format(log.date)).put("status", log.status.name)
+        log.content?.let { json.put("content", it) }
+        return json.toString()
+    }
 
     // Skips lines that aren't valid logs, such as ones written in the old plain-text format.
     private fun parse(line: String): WLog? = try {
         val json = JSONObject(line)
-        WLog(date = isoFormat().parse(json.getString("date"))!!, content = json.getString("content"))
+        WLog(
+            date = isoFormat().parse(json.getString("date"))!!,
+            status = LogStatus.valueOf(json.getString("status")),
+            content = if (json.has("content")) json.getString("content") else null
+        )
     } catch (e: JSONException) {
         null
     } catch (e: ParseException) {
+        null
+    } catch (e: IllegalArgumentException) {
+        // A status name this version doesn't know.
         null
     }
 

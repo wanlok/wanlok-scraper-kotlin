@@ -12,7 +12,7 @@ While the user has pressed **Start**, the phone runs a job about every 15 minute
 - Each run currently does nothing and succeeds.
 
 ## Log
-Every event adds a log `{ "date": <ISO 8601 date and time, e.g. "2026-10-31T11:07:08.123+11:00">, "content": <string> }`. The screen shows the time of day, as `HH:mm:ss  content`. `content` is the task name, or an event such as `Started` and `Stopped`, which Start and Stop add. This format is expected to change.
+Every event adds a log `{ "date": <ISO 8601 date and time, e.g. "2026-10-31T11:07:08.123+11:00">, "status": <"STARTED" | "STOPPED" | "TASK_RUNNING" | "TASK_COMPLETED" | "TASK_FAILED">, "content": <string, optional> }`. The screen shows the time of day, as `HH:mm:ss  status  content`. Start and Stop add `STARTED` and `STOPPED` with no content; task runs will add the `TASK_` ones, with the task name as content. This format is expected to change.
 
 Logs are saved in one file per day, `logs/yyyyMMdd.txt` (app private storage), one JSON object per line. The screen shows today's logs and reloads today's file when the app starts. Old files are not deleted automatically. Lines in the old plain-text format are skipped when loading.
 

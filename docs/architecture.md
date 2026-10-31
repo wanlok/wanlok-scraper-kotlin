@@ -21,7 +21,8 @@ com.wanlok.scraper
 │   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
 │   └── PostWorker.kt      one run of the job (placeholder, does nothing yet)
 └── data
-    ├── WLog.kt                one log: { date, content }
+    ├── WLog.kt                one log: { date, status, content? }
+    ├── LogStatus.kt           STARTED, STOPPED, TASK_RUNNING, TASK_COMPLETED or TASK_FAILED
     ├── LogRepository.kt       today's logs shown on screen, saved as JSON lines, one file per day
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
     ├── Task.kt                a scraping task: id, name, url, selector (text extraction only)

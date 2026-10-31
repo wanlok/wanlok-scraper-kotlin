@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.wanlok.scraper.data.LogStatus
 import com.wanlok.scraper.data.WLog
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import java.text.SimpleDateFormat
@@ -33,7 +34,10 @@ fun LogViewer(logs: List<WLog>, modifier: Modifier = Modifier) {
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
         items(logs) { log ->
-            Text(text = "${timeFormat.format(log.date)}  ${log.content}")
+            Text(
+                text = listOfNotNull(timeFormat.format(log.date), log.status.name, log.content)
+                    .joinToString("  ")
+            )
         }
     }
 }
@@ -45,12 +49,14 @@ fun LogViewerPreview() {
     ScraperTheme {
         LogViewer(
             logs = listOf(
-                WLog(date = Date(now - 2_000), content = "Started"),
+                WLog(date = Date(now - 3_000), status = LogStatus.STARTED),
+                WLog(date = Date(now - 2_000), status = LogStatus.TASK_RUNNING, content = "Task 1"),
                 WLog(
                     date = Date(now - 1_000),
+                    status = LogStatus.TASK_COMPLETED,
                     content = "A task with a long name that wraps onto a second line"
                 ),
-                WLog(date = Date(now), content = "Task 2")
+                WLog(date = Date(now), status = LogStatus.TASK_FAILED, content = "Task 2")
             )
         )
     }
