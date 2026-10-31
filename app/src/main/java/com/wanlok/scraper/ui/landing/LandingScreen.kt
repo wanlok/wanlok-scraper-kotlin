@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import com.wanlok.scraper.data.LogRepository
+import com.wanlok.scraper.data.WLog
 import com.wanlok.scraper.ui.icons.Stop
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import com.wanlok.scraper.work.PostScheduler
@@ -27,11 +28,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
+import java.util.Date
 
-private val sampleLines = listOf(
-    "10:15:02  Started: POST every 15 minutes",
-    "10:15:03  POST https://component.wanlok.workers.dev/api/dummy",
-    "10:15:04  -> 200"
+private val now = System.currentTimeMillis()
+
+private val sampleLogs = listOf(
+    WLog(date = Date(now - 2_000), content = "Started"),
+    WLog(date = Date(now - 1_000), content = "Task 1"),
+    WLog(date = Date(now), content = "Task 2")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +48,7 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         if (isPreview) flowOf(false) else PostScheduler.isRunning(context)
     }
     val isRunning by isRunningFlow.collectAsState(initial = false)
-    val lines by (if (isPreview) remember { MutableStateFlow(sampleLines) } else LogRepository.lines)
+    val logs by (if (isPreview) remember { MutableStateFlow(sampleLogs) } else LogRepository.logs)
         .collectAsState()
 
     LaunchedEffect(Unit) {
@@ -74,7 +78,7 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         }
     ) { innerPadding ->
         LogViewer(
-            lines = lines,
+            logs = logs,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()

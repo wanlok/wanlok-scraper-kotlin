@@ -1,27 +1,23 @@
-# Background POST
+# Background job
 
-> **Status: proof of concept.** Sending one dummy POST on a schedule exists to prove that scheduled background work, the terminal log and the backend connection all work. The real job will replace it. Treat the endpoint, the body and the 15-minute interval as placeholders.
+> **Status: placeholder.** The dummy POST to the backend was removed. **Start** still schedules a periodic job, but the job does nothing yet. Running the saved tasks will go here, and this feature will be rewritten then.
 
 ## Goal
-While the user has pressed **Start**, the phone sends a POST request to the backend about every 15 minutes, even when the app is closed. **Stop** cancels it.
+While the user has pressed **Start**, the phone runs a job about every 15 minutes, even when the app is closed. **Stop** cancels it.
 
 ## Behaviour
 - **Start** schedules unique periodic work named `post_every_15_minutes` (15 minutes, requires a network connection). Pressing Start while the job exists changes nothing (`KEEP`).
 - **Stop** cancels that work.
 - Start is enabled only when no job exists; Stop only when one does. This comes from WorkManager's status, so it survives closing and reopening the app.
-- Each run sends `POST https://component.wanlok.workers.dev/api/dummy` with body `{"name": "<Build.MODEL>"}`.
-  - 2xx response: success.
-  - Any other status or a network error: `Result.retry()` (WorkManager retries with backoff).
+- Each run currently does nothing and succeeds.
 
-## Terminal log
-Every event adds a line, formatted `HH:mm:ss  message`:
-- `Started: POST every 15 minutes` and `Stopped`
-- `POST <url>` just before each request, then `-> <status>` or `error: <message>`
+## Log
+Every event adds a log `{ "date": <ISO 8601 date and time, e.g. "2026-10-31T11:07:08.123+11:00">, "content": <string> }`. The screen shows the time of day, as `HH:mm:ss  content`. `content` is the task name, or an event such as `Started` and `Stopped`, which Start and Stop add. This format is expected to change.
 
-Lines are saved in one file per day, `logs/yyyyMMdd.txt` (app private storage). The screen shows today's lines and reloads today's file when the app starts. Old files are not deleted automatically.
+Logs are saved in one file per day, `logs/yyyyMMdd.txt` (app private storage), one JSON object per line. The screen shows today's logs and reloads today's file when the app starts. Old files are not deleted automatically. Lines in the old plain-text format are skipped when loading.
 
 ## Known limits
 - 15 minutes is WorkManager's minimum and a target, not a promise: Doze, battery saver and some phone makers delay runs.
 - Force-stopping or uninstalling the app cancels the job.
 - Changing the job's settings (interval, constraints) does not apply to an existing job while `KEEP` is used. Press Stop then Start, or switch to `UPDATE`.
-- The log file is rewritten on every line; fine for 500 lines.
+- Each day's log is read into memory in full when the app starts; fine at this size.

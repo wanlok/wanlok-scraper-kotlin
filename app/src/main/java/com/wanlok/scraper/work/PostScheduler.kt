@@ -26,7 +26,7 @@ object PostScheduler {
         // KEEP: tapping Start twice doesn't create a second job.
         WorkManager.getInstance(context)
             .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
-        LogRepository.append(context, "Started: POST every 15 minutes")
+        LogRepository.append(context, "Started")
     }
 
     fun stop(context: Context) {
