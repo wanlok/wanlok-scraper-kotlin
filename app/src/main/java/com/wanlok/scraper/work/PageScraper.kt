@@ -7,6 +7,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.wanlok.scraper.data.DataSelector
+import com.wanlok.scraper.data.PageSelector
 import com.wanlok.scraper.data.ScrapedItem
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +24,8 @@ class ScrapeException(message: String) : Exception(message)
 
 /**
  * Loads a page in a WebView (the system browser engine, so JavaScript runs like in Chrome) and
- * reads the text of the elements a task's data selector describes.
+ * reads from it: the text of the elements a task's data selector describes, or the URLs of the
+ * pages of a list.
  */
 object PageScraper {
     private const val LOAD_TIMEOUT_MS = 30_000L
@@ -38,6 +40,31 @@ object PageScraper {
      * [ScrapeException].
      */
     suspend fun scrape(context: Context, url: String, dataSelector: DataSelector): List<ScrapedItem> =
+        withPage(context, url) { webView -> waitForMatches(webView, dataSelector) }
+
+    /**
+     * The URLs of all the pages of the list that starts at [url] (page 1), in order, worked out
+     * from the pagination links on that page. The pairs of [pageSelector] are handled in turn and
+     * their pages are joined, without duplicates. Throws [ScrapeException].
+     */
+    suspend fun pageUrls(context: Context, url: String, pageSelector: PageSelector): List<String> =
+        withPage(context, url) { webView ->
+            val pages = LinkedHashSet<String>()
+            for ((selector, param) in pageSelector.pairs) {
+                val links = pollUntilNotEmpty { queryLinks(webView, selector) }
+                if (links.isEmpty()) throw ScrapeException("page_selector matched nothing: $selector")
+                pages += PageUrls.build(url, param, links)
+                    ?: throw ScrapeException("no links with page parameter \"$param\"")
+            }
+            pages.toList()
+        }
+
+    /** Loads [url] in a WebView and runs [block] on the loaded page. Then destroys the WebView. */
+    private suspend fun <T> withPage(
+        context: Context,
+        url: String,
+        block: suspend (WebView) -> T
+    ): T =
         // A WebView must be created and used on the main thread.
         withContext(Dispatchers.Main) {
             val webView = WebView(context.applicationContext)
@@ -72,26 +99,28 @@ object PageScraper {
                 webView.loadUrl(url)
                 withTimeoutOrNull(LOAD_TIMEOUT_MS) { loaded.await() }
                     ?: throw ScrapeException("page took too long to load")
-                waitForMatches(webView, dataSelector)
+                block(webView)
             } finally {
                 webView.destroy()
             }
         }
 
-    /** Queries until something matches. Returns an empty list if nothing matched in time. */
-    private suspend fun waitForMatches(
-        webView: WebView,
-        dataSelector: DataSelector
-    ): List<ScrapedItem> {
-        var items = query(webView, dataSelector)
+    /** Reads until something comes back. Returns an empty list if nothing did in time. */
+    private suspend fun <T> pollUntilNotEmpty(read: suspend () -> List<T>): List<T> {
+        var items = read()
         withTimeoutOrNull(MATCH_TIMEOUT_MS) {
             while (items.isEmpty()) {
                 delay(POLL_MS)
-                items = query(webView, dataSelector)
+                items = read()
             }
         }
         return items
     }
+
+    private suspend fun waitForMatches(
+        webView: WebView,
+        dataSelector: DataSelector
+    ): List<ScrapedItem> = pollUntilNotEmpty { query(webView, dataSelector) }
 
     private suspend fun query(webView: WebView, dataSelector: DataSelector): List<ScrapedItem> {
         val container: String
@@ -109,7 +138,9 @@ object PageScraper {
 
         // Without fields each container gives its text; with fields each gives an object, with null
         // for a field that isn't found inside it.
-        val script = """
+        val result = evaluate(
+            webView,
+            """
             (function() {
                 var fields = ${fields ?: "null"};
                 function text(node) {
@@ -140,16 +171,8 @@ object PageScraper {
                 }
                 return JSON.stringify({ items: items });
             })()
-        """.trimIndent()
-
-        // evaluateJavascript hands back the script's result as JSON, so a string comes back quoted.
-        val raw = suspendCancellableCoroutine<String?> { continuation ->
-            webView.evaluateJavascript(script) { continuation.resume(it) }
-        }
-        val text = raw?.let { JSONTokener(it).nextValue() as? String }
-            ?: throw ScrapeException("could not read the page")
-
-        val result = JSONObject(text)
+            """.trimIndent()
+        )
         if (result.optBoolean("invalid")) throw ScrapeException("invalid data selector")
         val invalidField = result.optString("invalidField")
         if (invalidField.isNotEmpty()) throw ScrapeException("invalid selector for field $invalidField")
@@ -169,5 +192,41 @@ object PageScraper {
                 }
             }
         }
+    }
+
+    /** The absolute URL of every element [selector] matches that has an href. */
+    private suspend fun queryLinks(webView: WebView, selector: String): List<String> {
+        // For a link, node.href is the full address, even if the page wrote a relative one.
+        val result = evaluate(
+            webView,
+            """
+            (function() {
+                var nodes;
+                try {
+                    nodes = document.querySelectorAll(${JSONObject.quote(selector)});
+                } catch (e) {
+                    return JSON.stringify({ invalid: true });
+                }
+                return JSON.stringify({ links: Array.from(nodes, function(node) {
+                    return typeof node.href === 'string' ? node.href : '';
+                }) });
+            })()
+            """.trimIndent()
+        )
+        if (result.optBoolean("invalid")) throw ScrapeException("invalid page_selector")
+
+        val links = result.getJSONArray("links")
+        return List(links.length()) { links.getString(it) }.filter { it.isNotEmpty() }
+    }
+
+    /** Runs [script], which returns JSON text, in the page and parses what it returns. */
+    private suspend fun evaluate(webView: WebView, script: String): JSONObject {
+        // evaluateJavascript hands back the script's result as JSON, so a string comes back quoted.
+        val raw = suspendCancellableCoroutine<String?> { continuation ->
+            webView.evaluateJavascript(script) { continuation.resume(it) }
+        }
+        val text = raw?.let { JSONTokener(it).nextValue() as? String }
+            ?: throw ScrapeException("could not read the page")
+        return JSONObject(text)
     }
 }

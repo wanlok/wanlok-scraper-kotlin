@@ -29,9 +29,27 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
 - `POST /api/run` runs all saved tasks now, the same code as the periodic job, and returns 204 when they have finished. Results appear in the Home log.
 - On Android 13+, Start first asks for the notification permission. The server starts whether or not it is granted.
 
+## Pagination (partly built)
+Built: the page list function (`PageUrls`, `PageScraper.pageUrls`) and the test endpoint `POST /api/pages`. Not built: the `page_selector` property on tasks, and scraping every page in a run.
+
+For a list that is spread over several pages, a task will have a `page_selector`. The task URL is scraped as page 1, and the other pages are worked out from the pagination links on it.
+
+```json
+"page_selector": { ".pagination a": "page" }
+```
+- The value is an object with one or more pairs. The key is a CSS selector for the pagination links, and the value is the name of the query parameter that holds the page number (`page`, `p`, …). A plain string is not valid (400), since it can't say which parameter to use.
+- For each pair, the links its selector matches are filtered to those with exactly that parameter (`?page=N`, `&page=N`), with N of 1 or more. Other links (`#`, product links, `page=0`) are ignored. The largest N is the last page, and the pages 2 to N are the link with only the page value changed, so the other parameters are kept.
+- With several pairs, the lists are joined in the order written and duplicates are removed. A pair that finds no link with its parameter fails the whole call (`no links with page parameter "p"`).
+- There is no limit on the number of pages.
+- The page list is built by one function that takes a URL and a `page_selector`. The task run will reuse it.
+
+`POST /api/pages` is the test endpoint for it. It takes `{ "url", "page_selector" }` and returns `{ "pages": [ "<url>", "<url>?page=2", … ] }`. It loads the page in the WebView, so it takes a few seconds. It returns 400 for a bad body, and 422 with `{ "error" }` if the page can't be loaded (`HTTP 404`, `page took too long to load`, …), a selector is invalid (`invalid page_selector`) or matches nothing (`page_selector matched nothing: <selector>`, after waiting up to 10 seconds for it to appear), or no link has the parameter (`no links with page parameter "<param>"`).
+
+**Assumption, to revisit:** the URL given for the task is always page 1 and is used as it is. If someone gives a later page, such as `?page=3`, that page is listed first and page 1 is missing. A safer version would remove the page parameter from the task URL to get page 1. It assumes a page without the parameter is page 1, which holds for the two sites tried (`cap.com.hk` and `shop.pegasus.hk`). Both sites were checked as plain HTML, with links such as `?page=2`.
+
 ## Planned
 - A page with the task list and a form (name, URL, data selector), using the API.
-- A `page_selector` for sites whose data is spread over several pages.
+- Pagination: the `page_selector` and `POST /api/pages` described above.
 - An access code, URL validation.
 - Wake lock and Wi-Fi lock so the phone stays reachable with the screen off, as an option in Settings, plus an auto-stop timer.
 

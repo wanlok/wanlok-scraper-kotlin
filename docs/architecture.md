@@ -20,7 +20,8 @@ com.wanlok.scraper
 ├── work
 │   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
 │   ├── PostWorker.kt      one run of the job: runs all the saved tasks
-│   ├── PageScraper.kt     loads a page in a WebView (runs its JavaScript) and reads the text of the matching elements
+│   ├── PageScraper.kt     loads a page in a WebView (runs its JavaScript) and reads the text of the matching elements, or the pagination links
+│   ├── PageUrls.kt        works out the URL of every page of a list from its pagination links (no WebView, unit tested)
 │   └── TaskRunner.kt      scrapes each task's page, saves a snapshot, logs the outcome
 ├── server
 │   ├── ServerService.kt   foreground service that runs the Ktor web server (port 8080)
@@ -33,6 +34,7 @@ com.wanlok.scraper
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
     ├── Task.kt                a scraping task: id, name, url, dataSelector (text extraction only)
     ├── DataSelector.kt        what a task reads: one CSS selector, or a container with named fields
+    ├── PageSelector.kt        how to find the pages of a list: pagination link selector -> page query parameter
     ├── TaskRepository.kt      the saved tasks (tasks.json)
     ├── Snapshot.kt            what one run of a task produced: { date, status, data (a list of texts or of field objects) or error }
     ├── SnapshotRepository.kt  the snapshots of each task (snapshots/<id>.jsonl)

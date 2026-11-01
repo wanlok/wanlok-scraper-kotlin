@@ -2,8 +2,11 @@ package com.wanlok.scraper.server
 
 import android.content.Context
 import com.wanlok.scraper.data.DataSelector
+import com.wanlok.scraper.data.PageSelector
 import com.wanlok.scraper.data.SnapshotRepository
 import com.wanlok.scraper.data.TaskRepository
+import com.wanlok.scraper.work.PageScraper
+import com.wanlok.scraper.work.ScrapeException
 import com.wanlok.scraper.work.TaskRunner
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -32,6 +35,35 @@ fun Route.taskRoutes(context: Context) {
     post("/api/run") {
         TaskRunner.runAll(context)
         call.respond(HttpStatusCode.NoContent)
+    }
+
+    // Works out the URLs of all the pages of a list from its pagination links. Handy for testing a
+    // page_selector. Body: { "url": "...", "page_selector": { ".pagination a": "page" } }
+    post("/api/pages") {
+        val body = try {
+            JSONObject(call.receiveText())
+        } catch (e: JSONException) {
+            return@post call.respondError("The body must be JSON")
+        }
+        val url = body.optString("url").trim()
+        if (!isHttpUrl(url)) {
+            return@post call.respondError("url must be an http:// or https:// address")
+        }
+        val pageSelector = try {
+            PageSelector.fromJson(body.opt("page_selector"))
+        } catch (e: IllegalArgumentException) {
+            return@post call.respondError(e.message ?: "page_selector is not valid")
+        }
+
+        try {
+            val pages = PageScraper.pageUrls(context, url, pageSelector)
+            call.respondText(
+                JSONObject().put("pages", JSONArray(pages)).toString(),
+                ContentType.Application.Json
+            )
+        } catch (e: ScrapeException) {
+            call.respondError(e.message ?: "could not read the page", HttpStatusCode.UnprocessableEntity)
+        }
     }
 
     route("/api/tasks") {
