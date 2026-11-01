@@ -22,7 +22,6 @@ import java.util.Date
  */
 object TaskRunner {
     private const val TIMEOUT_MS = 15_000
-    private const val MAX_DATA_LENGTH = 10_000
 
     /** Runs every saved task, one at a time. A task that fails doesn't stop the others. */
     suspend fun runAll(context: Context) {
@@ -38,7 +37,7 @@ object TaskRunner {
             if (element == null) {
                 failed(context, task, "selector matched nothing")
             } else {
-                completed(context, task, element.text().take(MAX_DATA_LENGTH))
+                completed(context, task, element.text())
             }
         } catch (e: HttpStatusException) {
             failed(context, task, "HTTP ${e.statusCode}")

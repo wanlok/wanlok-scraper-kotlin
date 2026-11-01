@@ -17,7 +17,7 @@ For each saved task, in order:
 2. Fetch the URL with Jsoup (15 second timeout) and take the text of the first element matching the CSS selector.
 3. Save a snapshot for the task (`TASK_COMPLETED` with the data, or `TASK_FAILED` with the error), and log `TASK_COMPLETED` with the task name, or `TASK_FAILED` with `<name>: <reason>`.
 
-A task fails when the request fails or times out, the server returns an error status (`HTTP 404`), the response is not HTML, the URL or the selector is invalid, or the selector matches nothing. An element whose text is empty still counts as completed. One failing task does not stop the others. Snapshots are saved on the phone, one file per task (`snapshots/<id>.jsonl`, one JSON line per run, data shortened to 10,000 characters). They are read with `GET /api/tasks/{id}` and deleted with the task. Nothing is sent to Firestore yet.
+A task fails when the request fails or times out, the server returns an error status (`HTTP 404`), the response is not HTML, the URL or the selector is invalid, or the selector matches nothing. An element whose text is empty still counts as completed. One failing task does not stop the others. Snapshots are saved on the phone, one file per task (`snapshots/<id>.jsonl`, one JSON line per run, data kept in full). They are read with `GET /api/tasks/{id}` and deleted with the task. Nothing is sent to Firestore yet.
 
 `POST /api/run` on the web server runs all tasks immediately, to test without waiting for the schedule.
 
