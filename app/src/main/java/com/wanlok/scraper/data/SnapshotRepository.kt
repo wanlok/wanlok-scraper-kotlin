@@ -1,6 +1,7 @@
 package com.wanlok.scraper.data
 
 import android.content.Context
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
@@ -35,7 +36,7 @@ object SnapshotRepository {
         val json = JSONObject()
             .put("date", IsoDate.format(snapshot.date))
             .put("status", snapshot.status.name)
-        snapshot.data?.let { json.put("data", it) }
+        snapshot.data?.let { json.put("data", JSONArray(it)) }
         snapshot.error?.let { json.put("error", it) }
         return json
     }
@@ -46,7 +47,12 @@ object SnapshotRepository {
         Snapshot(
             date = IsoDate.parse(json.getString("date")),
             status = LogStatus.valueOf(json.getString("status")),
-            data = if (json.has("data")) json.getString("data") else null,
+            data = if (json.has("data")) {
+                val array = json.getJSONArray("data")
+                List(array.length()) { array.getString(it) }
+            } else {
+                null
+            },
             error = if (json.has("error")) json.getString("error") else null
         )
     } catch (e: JSONException) {

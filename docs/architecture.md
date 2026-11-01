@@ -20,7 +20,8 @@ com.wanlok.scraper
 ├── work
 │   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
 │   ├── PostWorker.kt      one run of the job: runs all the saved tasks
-│   └── TaskRunner.kt      fetches each task's page (Jsoup), saves a snapshot, logs the outcome
+│   ├── PageScraper.kt     loads a page in a WebView (runs its JavaScript) and reads the text of the matching elements
+│   └── TaskRunner.kt      scrapes each task's page, saves a snapshot, logs the outcome
 ├── server
 │   ├── ServerService.kt   foreground service that runs the Ktor web server (port 8080)
 │   ├── TaskRoutes.kt      the /api/tasks endpoints (list, add, edit, delete)
@@ -32,7 +33,7 @@ com.wanlok.scraper
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
     ├── Task.kt                a scraping task: id, name, url, dataSelector (text extraction only)
     ├── TaskRepository.kt      the saved tasks (tasks.json)
-    ├── Snapshot.kt            what one run of a task produced: { date, status, data or error }
+    ├── Snapshot.kt            what one run of a task produced: { date, status, data (a list) or error }
     ├── SnapshotRepository.kt  the snapshots of each task (snapshots/<id>.jsonl)
     └── IsoDate.kt             ISO 8601 date text, used for the stored dates
 ```

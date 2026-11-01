@@ -12,7 +12,7 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
 - `GET /` returns `app/src/main/assets/index.html`. Open the address in a desktop browser on the same Wi-Fi to check it works.
 - Task API (JSON):
   - `GET /api/tasks` returns all tasks.
-  - `GET /api/tasks/{id}` returns that task with its snapshots, newest first: `{ id, name, url, data_selector, snapshots: [...] }`. A completed snapshot is `{ date, status: "TASK_COMPLETED", data }` and a failed one is `{ date, status: "TASK_FAILED", error }`. `?limit=` sets how many snapshots (default 100, maximum 1000). A task that never ran has `"snapshots": []`. It returns 404 if there is no such task.
+  - `GET /api/tasks/{id}` returns that task with its snapshots, newest first: `{ id, name, url, data_selector, snapshots: [...] }`. A completed snapshot is `{ date, status: "TASK_COMPLETED", data: ["text of the first match", "text of the second match", ...] }` and a failed one is `{ date, status: "TASK_FAILED", error }`. `?limit=` sets how many snapshots (default 100, maximum 1000). A task that never ran has `"snapshots": []`. It returns 404 if there is no such task.
   - `POST /api/tasks` with `{ "name", "url", "data_selector" }` adds a task and returns it (201). It returns 400 with `{ "error" }` if `name` or `data_selector` is blank, or `url` is not an http(s) address.
   - `PUT /api/tasks/{id}` with the same body replaces that task, keeping its id, and returns it (200). It has the same 400 errors, or returns 404 if there is no such task.
   - `DELETE /api/tasks/{id}` removes a task and its snapshots (204), or returns 404 if there is no such task.
