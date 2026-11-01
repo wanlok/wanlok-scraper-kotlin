@@ -26,7 +26,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Runs the web server. It's a foreground service (with a notification) so the system keeps it
@@ -38,6 +41,9 @@ class ServerService : Service() {
     @Volatile
     private var server: EmbeddedServer<*, *>? = null
 
+    // Set when the server is being started, so a second Start can't try to bind the port again.
+    private val starting = AtomicBoolean(false)
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -47,7 +53,7 @@ class ServerService : Service() {
                 .build()
         )
         showNotification("Starting the web server")
-        if (server == null) scope.launch { startServer() }
+        if (starting.compareAndSet(false, true)) scope.launch { startServer() }
         return START_STICKY
     }
 
@@ -67,10 +73,12 @@ class ServerService : Service() {
             return
         }
         showNotification(address)
+        _running.value = true
         LogRepository.append(this, LogStatus.STARTED, "Web server $address")
     }
 
     override fun onDestroy() {
+        _running.value = false
         val running = server
         server = null
         scope.launch {
@@ -113,7 +121,15 @@ class ServerService : Service() {
         private const val CHANNEL_ID = "web_server"
         private const val NOTIFICATION_ID = 1
 
-fun start(context: Context) {
+        private val _running = MutableStateFlow(false)
+
+        /**
+         * True while the web server is serving. It is kept in memory, so it is false again when the
+         * system kills the app's process, which is how the screen can tell the server is gone.
+         */
+        val running: StateFlow<Boolean> = _running
+
+        fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, ServerService::class.java))
         }
 

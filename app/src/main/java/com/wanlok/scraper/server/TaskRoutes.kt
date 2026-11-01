@@ -37,6 +37,7 @@ fun Route.taskRoutes(context: Context) {
         if (TaskRunner.isRunning) {
             call.respondError("A run is already in progress", HttpStatusCode.Conflict)
         } else {
+
             TaskRunner.runAllInBackground(context)
             call.respond(HttpStatusCode.Accepted)
         }

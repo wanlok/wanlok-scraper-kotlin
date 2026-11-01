@@ -56,5 +56,5 @@ For a list that is spread over several pages, a task has a `page_selector`. The 
 - Same network only. Some routers block device-to-device traffic (client isolation).
 - Plain HTTP and no authentication yet: anyone on the network can open the page.
 - Without a wake lock, Doze can make the phone unreachable after the screen has been off for a while.
-- The Start/Stop icon state comes from the WorkManager job, not from the server. If the system kills the service, the icons still show "running".
-- Xiaomi/MIUI may kill the service; set the app to "No restrictions" and enable Autostart.
+- If the app is killed while it is closed (swiping it away on Xiaomi/MIUI, for example), the web server stops and nothing can restart it until the app is opened again. The 15 minute job survives a swipe, so tasks keep running. When the app is opened and the job is still scheduled but the server is gone, the server is started again automatically. Until then the Start button is enabled (the buttons look at both the job and the server), and pressing it also starts the server.
+- To make Xiaomi/MIUI kill the app less often, set the app to "No restrictions", enable Autostart, and lock the app in the recent apps list.

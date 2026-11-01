@@ -31,9 +31,10 @@ import com.wanlok.scraper.data.WLog
 import com.wanlok.scraper.server.ServerService
 import com.wanlok.scraper.ui.icons.Stop
 import com.wanlok.scraper.ui.theme.ScraperTheme
-import com.wanlok.scraper.work.PostScheduler
+import com.wanlok.scraper.work.TaskScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import java.util.Date
@@ -54,9 +55,12 @@ fun LandingScreen(modifier: Modifier = Modifier) {
     // WorkManager and the log file aren't available in the @Preview renderer, so fake them there.
     val isPreview = LocalInspectionMode.current
     val isRunningFlow = remember(context) {
-        if (isPreview) flowOf(false) else PostScheduler.isRunning(context)
+        if (isPreview) flowOf(false) else TaskScheduler.isRunning(context)
     }
-    val isRunning by isRunningFlow.collectAsState(initial = false)
+    val jobRunning by isRunningFlow.collectAsState(initial = false)
+    // The job survives the app being swiped away, the web server doesn't, so they are shown apart.
+    val serverRunning by (if (isPreview) flowOf(false) else ServerService.running)
+        .collectAsState(initial = false)
     val logs by (if (isPreview) remember { MutableStateFlow(sampleLogs) } else LogRepository.logs)
         .collectAsState()
 
@@ -64,9 +68,18 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         if (!isPreview) withContext(Dispatchers.IO) { LogRepository.load(context) }
     }
 
+    // If the job is still scheduled but the web server is gone (the system killed the app's
+    // process), bring the server back. This only checks when the screen opens, so pressing Stop
+    // can't trigger it.
+    LaunchedEffect(Unit) {
+        if (!isPreview && TaskScheduler.isRunning(context).first() && !ServerService.running.value) {
+            ServerService.start(context)
+        }
+    }
+
     // Start runs the periodic job and the web server together.
     fun start() {
-        PostScheduler.start(context)
+        TaskScheduler.start(context)
         ServerService.start(context)
     }
     // Android 13+ asks before showing the server's notification. Start either way.
@@ -94,16 +107,16 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                                 start()
                             }
                         },
-                        enabled = !isRunning
+                        enabled = !(jobRunning && serverRunning)
                     ) {
                         Icon(Icons.Filled.PlayArrow, contentDescription = "Start")
                     }
                     IconButton(
                         onClick = {
-                            PostScheduler.stop(context)
+                            TaskScheduler.stop(context)
                             ServerService.stop(context)
                         },
-                        enabled = isRunning
+                        enabled = jobRunning || serverRunning
                     ) {
                         Icon(Icons.Filled.Stop, contentDescription = "Stop")
                     }

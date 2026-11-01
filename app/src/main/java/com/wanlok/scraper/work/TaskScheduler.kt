@@ -10,11 +10,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.concurrent.TimeUnit
 
-object PostScheduler {
-    private const val WORK_NAME = "post_every_15_minutes"
+/** Starts and stops the periodic job that runs the saved tasks (see [TaskWorker]). */
+object TaskScheduler {
+    private const val WORK_NAME = "run_tasks_every_15_minutes"
 
     fun start(context: Context) {
-        val request = PeriodicWorkRequestBuilder<PostWorker>(15, TimeUnit.MINUTES)
+        val request = PeriodicWorkRequestBuilder<TaskWorker>(15, TimeUnit.MINUTES)
             .setConstraints(
                 Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)

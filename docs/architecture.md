@@ -18,8 +18,8 @@ com.wanlok.scraper
 │   ├── icons/             StopIcon.kt (Stop is only in material-icons-extended, so it is drawn here)
 │   └── theme/             Color.kt, Theme.kt, Type.kt
 ├── work
-│   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
-│   ├── PostWorker.kt      one run of the job: runs all the saved tasks
+│   ├── TaskScheduler.kt   starts/stops the periodic job, exposes its running state
+│   ├── TaskWorker.kt      one run of the job: runs all the saved tasks
 │   ├── PageScraper.kt     loads a page in a WebView (runs its JavaScript) and reads the text of the matching elements, or the pagination links
 │   ├── PageUrls.kt        works out the URL of every page of a list from its pagination links (no WebView, unit tested)
 │   └── TaskRunner.kt      scrapes each task's pages, saves one snapshot, logs the outcome
@@ -48,10 +48,10 @@ com.wanlok.scraper
 ## Data flow
 
 ```
-Start tapped -> PostScheduler.start() -> WorkManager (unique periodic work)
+Start tapped -> TaskScheduler.start() -> WorkManager (unique periodic work)
              -> ServerService.start() -> foreground service -> Ktor server on port 8080
                                               |
-                                  every ~15 min: PostWorker.doWork() -> TaskRunner.runAll()
+                                  every ~15 min: TaskWorker.doWork() -> TaskRunner.runAll()
 
 LogRepository.append(...) -> logs/yyyyMMdd.txt + StateFlow
                                               |
@@ -60,7 +60,7 @@ LogRepository.append(...) -> logs/yyyyMMdd.txt + StateFlow
 TasksScreen collects TaskRepository.tasks (tasks.json)
 ```
 
-- Button state is not held by the screen. `PostScheduler.isRunning()` reads the job's status from WorkManager, so the icons are correct after the app is reopened.
+- Button state is not held by the screen. `TaskScheduler.isRunning()` reads the job's status from WorkManager, and `ServerService.running` (kept in memory) says whether the web server is serving. Start is enabled unless both are running, and Stop if either is. When the Home screen opens and the job is scheduled but the server isn't running (the system killed the process), it starts the server again.
 - Settings are saved automatically (no Save button) when the user presses Done or leaves a field. The saved name is not used by anything right now; it was sent in the removed dummy POST.
 - Tasks are not added in the Android UI. Start launches a web server on the phone for a desktop browser (see `features/web-server.md`); adding tasks through it comes next.
 - There is no ViewModel yet. Add one per screen when a screen gains real logic.

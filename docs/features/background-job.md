@@ -1,12 +1,11 @@
 # Background job
 
-> **Status: first version.** The dummy POST to the backend was removed. **Start** schedules a periodic job that runs the saved tasks, saves a snapshot of what it extracts and logs the outcome. Snapshots are served by the API; sending them to Firestore is not built yet. The class names (`PostWorker`, `PostScheduler`) are left over from the dummy POST and should be renamed.
-
+> **Status: first version.** The dummy POST to the backend was removed. **Start** schedules a periodic job that runs the saved tasks, saves a snapshot of what it extracts and logs the outcome. Snapshots are served by the API; sending them to Firestore is not built yet.
 ## Goal
 While the user has pressed **Start**, the phone runs a job about every 15 minutes, even when the app is closed. **Stop** cancels it.
 
 ## Behaviour
-- **Start** schedules unique periodic work named `post_every_15_minutes` (15 minutes, requires a network connection). Pressing Start while the job exists changes nothing (`KEEP`).
+- **Start** schedules unique periodic work named `run_tasks_every_15_minutes` (15 minutes, requires a network connection). Pressing Start while the job exists changes nothing (`KEEP`).
 - **Stop** cancels that work.
 - Start is enabled only when no job exists; Stop only when one does. This comes from WorkManager's status, so it survives closing and reopening the app.
 - Each run goes through the saved tasks one at a time (see Task run). The job itself always succeeds; failures are logged per task.
