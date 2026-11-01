@@ -22,19 +22,19 @@ com.wanlok.scraper
 │   ├── PostWorker.kt      one run of the job: runs all the saved tasks
 │   ├── PageScraper.kt     loads a page in a WebView (runs its JavaScript) and reads the text of the matching elements, or the pagination links
 │   ├── PageUrls.kt        works out the URL of every page of a list from its pagination links (no WebView, unit tested)
-│   └── TaskRunner.kt      scrapes each task's page, saves a snapshot, logs the outcome
+│   └── TaskRunner.kt      scrapes each task's pages, saves one snapshot, logs the outcome
 ├── server
 │   ├── ServerService.kt   foreground service that runs the Ktor web server (port 8080)
 │   ├── TaskRoutes.kt      the /api/tasks endpoints (list, add, edit, delete)
 │   └── NetworkAddress.kt  the phone's local IPv4 address
 └── data
     ├── WLog.kt                one log: { date, status, content? }
-    ├── LogStatus.kt           STARTED, STOPPED, TASK_RUNNING, TASK_COMPLETED or TASK_FAILED
+    ├── LogStatus.kt           STARTED, STOPPED, TASK_RUNNING, TASK_PAGES_FOUND, TASK_PAGE_COMPLETED, TASK_COMPLETED or TASK_FAILED
     ├── LogRepository.kt       today's logs shown on screen, saved as JSON lines, one file per day
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
-    ├── Task.kt                a scraping task: id, name, url, dataSelector (text extraction only)
-    ├── DataSelector.kt        what a task reads: one CSS selector, or a container with named fields
+    ├── Task.kt                a scraping task: id, name, url, pageSelector (optional), dataSelector (text extraction only)
     ├── PageSelector.kt        how to find the pages of a list: pagination link selector -> page query parameter
+    ├── DataSelector.kt        what a task reads: one CSS selector, or a container with named fields
     ├── TaskRepository.kt      the saved tasks (tasks.json)
     ├── Snapshot.kt            what one run of a task produced: { date, status, data (a list of texts or of field objects) or error }
     ├── SnapshotRepository.kt  the snapshots of each task (snapshots/<id>.jsonl)

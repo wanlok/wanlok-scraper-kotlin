@@ -33,12 +33,19 @@ object TaskRepository {
     }
 
     @Synchronized
-    fun add(context: Context, name: String, url: String, dataSelector: DataSelector): Task {
+    fun add(
+        context: Context,
+        name: String,
+        url: String,
+        pageSelector: PageSelector?,
+        dataSelector: DataSelector
+    ): Task {
         load(context)
         val task = Task(
             id = UUID.randomUUID().toString(),
             name = name.trim(),
             url = url.trim(),
+            pageSelector = pageSelector,
             dataSelector = dataSelector
         )
         val updated = _tasks.value + task
@@ -54,12 +61,19 @@ object TaskRepository {
         id: String,
         name: String,
         url: String,
+        pageSelector: PageSelector?,
         dataSelector: DataSelector
     ): Task? {
         load(context)
         val current = _tasks.value
         if (current.none { it.id == id }) return null
-        val task = Task(id = id, name = name.trim(), url = url.trim(), dataSelector = dataSelector)
+        val task = Task(
+            id = id,
+            name = name.trim(),
+            url = url.trim(),
+            pageSelector = pageSelector,
+            dataSelector = dataSelector
+        )
         val updated = current.map { if (it.id == id) task else it }
         _tasks.value = updated
         file?.writeText(toJson(updated))
@@ -80,6 +94,7 @@ object TaskRepository {
         .put("id", task.id)
         .put("name", task.name)
         .put("url", task.url)
+        .apply { task.pageSelector?.let { put("page_selector", it.toJson()) } }
         .put("data_selector", task.dataSelector.toJson())
 
     fun toJson(tasks: List<Task>): String {
@@ -96,6 +111,11 @@ object TaskRepository {
                 id = item.getString("id"),
                 name = item.getString("name"),
                 url = item.getString("url"),
+                pageSelector = if (item.has("page_selector")) {
+                    PageSelector.fromJson(item.opt("page_selector"))
+                } else {
+                    null
+                },
                 dataSelector = DataSelector.fromJson(item.opt("data_selector"))
             )
         }

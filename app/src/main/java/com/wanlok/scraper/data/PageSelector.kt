@@ -10,6 +10,9 @@ import org.json.JSONObject
  *     "page_selector": { ".pagination a": "page" }
  */
 data class PageSelector(val pairs: Map<String, String>) {
+    /** The JSON value, the same as it was received. */
+    fun toJson(): JSONObject = JSONObject(pairs)
+
     companion object {
         private const val FORMAT = "page_selector must be an object like { \".pagination a\": \"page\" }"
 

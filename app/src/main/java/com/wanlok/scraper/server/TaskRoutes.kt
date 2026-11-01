@@ -96,7 +96,9 @@ fun Route.taskRoutes(context: Context) {
 
         post {
             val input = call.receiveTaskInput() ?: return@post
-            val task = TaskRepository.add(context, input.name, input.url, input.dataSelector)
+            val task = TaskRepository.add(
+                context, input.name, input.url, input.pageSelector, input.dataSelector
+            )
             call.respondText(
                 TaskRepository.toJson(task).toString(),
                 ContentType.Application.Json,
@@ -107,7 +109,9 @@ fun Route.taskRoutes(context: Context) {
         put("{id}") {
             val input = call.receiveTaskInput() ?: return@put
             val id = call.parameters["id"].orEmpty()
-            val task = TaskRepository.update(context, id, input.name, input.url, input.dataSelector)
+            val task = TaskRepository.update(
+                context, id, input.name, input.url, input.pageSelector, input.dataSelector
+            )
             if (task != null) {
                 call.respondText(
                     TaskRepository.toJson(task).toString(),
@@ -130,7 +134,12 @@ fun Route.taskRoutes(context: Context) {
     }
 }
 
-private data class TaskInput(val name: String, val url: String, val dataSelector: DataSelector)
+private data class TaskInput(
+    val name: String,
+    val url: String,
+    val pageSelector: PageSelector?,
+    val dataSelector: DataSelector
+)
 
 /** Reads and validates a task from the request body. Responds 400 and returns null if invalid. */
 private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
@@ -151,13 +160,24 @@ private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
         respondError(error)
         return null
     }
+    // The page selector is optional. Without it only the task's own page is read.
+    val pageSelector = if (body.isNull("page_selector")) {
+        null
+    } else {
+        try {
+            PageSelector.fromJson(body.opt("page_selector"))
+        } catch (e: IllegalArgumentException) {
+            respondError(e.message ?: "page_selector is not valid")
+            return null
+        }
+    }
     val dataSelector = try {
         DataSelector.fromJson(body.opt("data_selector"))
     } catch (e: IllegalArgumentException) {
         respondError(e.message ?: "data_selector is not valid")
         return null
     }
-    return TaskInput(name, url, dataSelector)
+    return TaskInput(name, url, pageSelector, dataSelector)
 }
 
 private fun isHttpUrl(url: String): Boolean = try {

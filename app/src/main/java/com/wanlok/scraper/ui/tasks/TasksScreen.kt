@@ -36,6 +36,7 @@ private val sampleTasks = List(20) { index ->
         id = index.toString(),
         name = "Task ${index + 1}",
         url = "https://example.com/page-${index + 1}",
+        pageSelector = null,
         dataSelector = DataSelector.Text("h1.title")
     )
 }
