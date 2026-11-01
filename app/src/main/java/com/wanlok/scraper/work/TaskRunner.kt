@@ -8,7 +8,14 @@ import com.wanlok.scraper.data.Snapshot
 import com.wanlok.scraper.data.SnapshotRepository
 import com.wanlok.scraper.data.Task
 import com.wanlok.scraper.data.TaskRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.Date
 
 /**
@@ -20,10 +27,36 @@ object TaskRunner {
     // Keeps the load on the site low when a task has several pages.
     private const val PAGE_PAUSE_MS = 1_000L
 
-    /** Runs every saved task, one at a time. A task that fails doesn't stop the others. */
-    suspend fun runAll(context: Context) {
+    // Only one run at a time, so two runs never load pages or save snapshots together.
+    private val lock = Mutex()
+
+    // For runs that are started without waiting for them, see runAllInBackground.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** True while a run is in progress. */
+    val isRunning: Boolean get() = lock.isLocked
+
+    /**
+     * Runs every saved task, one at a time. A task that fails doesn't stop the others. A run that
+     * starts while another is in progress waits for it to finish.
+     */
+    suspend fun runAll(context: Context) = lock.withLock {
         TaskRepository.load(context)
         TaskRepository.tasks.value.forEach { run(context, it) }
+    }
+
+    /** Starts [runAll] and returns at once. The outcome is in the log. */
+    fun runAllInBackground(context: Context) {
+        scope.launch {
+            try {
+                runAll(context)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Nobody is waiting for this run, so an unexpected error is logged, not thrown.
+                LogRepository.append(context, LogStatus.TASK_FAILED, "Run failed: ${e.message}")
+            }
+        }
     }
 
     private suspend fun run(context: Context, task: Task) {

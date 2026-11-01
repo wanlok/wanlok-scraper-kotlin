@@ -27,7 +27,7 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
     "data": [ { "name": "ASUS ROG ASTRAL", "price": "HK$ 12,999" }, { "name": "INNO 3D RTX5070", "price": null } ]
     ```
   - It returns 400 if the object has more or fewer than one key, if the container's value isn't an object or has no fields (use the string form), or if a field name or selector is blank.
-- `POST /api/run` runs all saved tasks now, the same code as the periodic job, and returns 204 when they have finished. Results appear in the Home log.
+- `POST /api/run` starts all saved tasks now, the same code as the periodic job, and returns 202 at once without waiting for them to finish, since a run can take minutes. Progress and results appear in the Home log, and the data in the snapshots. It returns 409 `{ "error" }` if a run is already in progress. The run continues even if the server is stopped.
 - On Android 13+, Start first asks for the notification permission. The server starts whether or not it is granted.
 
 ## Pagination

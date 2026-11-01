@@ -32,9 +32,14 @@ private const val MAX_SNAPSHOTS = 1000
 /** The task API used by the desktop page. Everything is JSON. */
 fun Route.taskRoutes(context: Context) {
     // Runs every task now, the same way the periodic job does. Handy for testing.
+    // The run takes as long as the pages take, so this returns at once. The outcome is in the Home log.
     post("/api/run") {
-        TaskRunner.runAll(context)
-        call.respond(HttpStatusCode.NoContent)
+        if (TaskRunner.isRunning) {
+            call.respondError("A run is already in progress", HttpStatusCode.Conflict)
+        } else {
+            TaskRunner.runAllInBackground(context)
+            call.respond(HttpStatusCode.Accepted)
+        }
     }
 
     // Works out the URLs of all the pages of a list from its pagination links. Handy for testing a
