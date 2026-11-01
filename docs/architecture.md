@@ -2,7 +2,7 @@
 
 Single-Activity Jetpack Compose app (Material 3). Package: `com.wanlok.scraper`.
 
-The app is at an early stage: the periodic job in `work/` runs the saved tasks and logs what it extracts; saving the results is not built yet.
+The app is at an early stage: the periodic job in `work/` runs the saved tasks, saves a snapshot of what it extracts and logs the outcome; sending the snapshots to Firestore is not built yet.
 SDK: `minSdk` 24, `targetSdk` 36, `compileSdk` 37.
 
 ## Layout
@@ -20,7 +20,7 @@ com.wanlok.scraper
 ├── work
 │   ├── PostScheduler.kt   starts/stops the periodic job, exposes its running state
 │   ├── PostWorker.kt      one run of the job: runs all the saved tasks
-│   └── TaskRunner.kt      fetches each task's page (Jsoup) and logs the extracted text
+│   └── TaskRunner.kt      fetches each task's page (Jsoup), saves a snapshot, logs the outcome
 ├── server
 │   ├── ServerService.kt   foreground service that runs the Ktor web server (port 8080)
 │   ├── TaskRoutes.kt      the /api/tasks endpoints (list, add, edit, delete)
@@ -31,7 +31,10 @@ com.wanlok.scraper
     ├── LogRepository.kt       today's logs shown on screen, saved as JSON lines, one file per day
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
     ├── Task.kt                a scraping task: id, name, url, selector (text extraction only)
-    └── TaskRepository.kt      the saved tasks (tasks.json)
+    ├── TaskRepository.kt      the saved tasks (tasks.json)
+    ├── Snapshot.kt            what one run of a task produced: { date, status, data or error }
+    ├── SnapshotRepository.kt  the snapshots of each task (snapshots/<id>.jsonl)
+    └── IsoDate.kt             ISO 8601 date text, used for the stored dates
 ```
 
 ## Navigation

@@ -51,7 +51,7 @@ object LogRepository {
     }
 
     private fun toJson(log: WLog): String {
-        val json = JSONObject().put("date", isoFormat().format(log.date)).put("status", log.status.name)
+        val json = JSONObject().put("date", IsoDate.format(log.date)).put("status", log.status.name)
         log.content?.let { json.put("content", it) }
         return json.toString()
     }
@@ -60,7 +60,7 @@ object LogRepository {
     private fun parse(line: String): WLog? = try {
         val json = JSONObject(line)
         WLog(
-            date = isoFormat().parse(json.getString("date"))!!,
+            date = IsoDate.parse(json.getString("date")),
             status = LogStatus.valueOf(json.getString("status")),
             content = if (json.has("content")) json.getString("content") else null
         )
@@ -72,9 +72,6 @@ object LogRepository {
         // A status name this version doesn't know.
         null
     }
-
-    // ISO 8601 with the time zone, e.g. 2026-10-31T11:07:08.123+11:00.
-    private fun isoFormat() = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.US)
 
     private fun fileFor(day: String) = File(dir, "$day.txt")
 

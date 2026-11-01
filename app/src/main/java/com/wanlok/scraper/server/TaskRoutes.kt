@@ -1,6 +1,7 @@
 package com.wanlok.scraper.server
 
 import android.content.Context
+import com.wanlok.scraper.data.SnapshotRepository
 import com.wanlok.scraper.data.TaskRepository
 import com.wanlok.scraper.work.TaskRunner
 import io.ktor.http.ContentType
@@ -15,10 +16,14 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.net.URI
 import java.net.URISyntaxException
+
+private const val DEFAULT_SNAPSHOTS = 100
+private const val MAX_SNAPSHOTS = 1000
 
 /** The task API used by the desktop page. Everything is JSON. */
 fun Route.taskRoutes(context: Context) {
@@ -33,6 +38,25 @@ fun Route.taskRoutes(context: Context) {
             TaskRepository.load(context)
             call.respondText(
                 TaskRepository.toJson(TaskRepository.tasks.value),
+                ContentType.Application.Json
+            )
+        }
+
+        // One task with its snapshots, newest first. ?limit= sets how many snapshots.
+        get("{id}") {
+            TaskRepository.load(context)
+            val id = call.parameters["id"].orEmpty()
+            val task = TaskRepository.tasks.value.firstOrNull { it.id == id }
+                ?: return@get call.respondError("No task with that id", HttpStatusCode.NotFound)
+            val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+                ?.coerceIn(1, MAX_SNAPSHOTS) ?: DEFAULT_SNAPSHOTS
+
+            val snapshots = JSONArray()
+            SnapshotRepository.latest(context, task.id, limit).forEach {
+                snapshots.put(SnapshotRepository.toJson(it))
+            }
+            call.respondText(
+                TaskRepository.toJson(task).put("snapshots", snapshots).toString(),
                 ContentType.Application.Json
             )
         }
@@ -64,6 +88,7 @@ fun Route.taskRoutes(context: Context) {
         delete("{id}") {
             val id = call.parameters["id"].orEmpty()
             if (TaskRepository.remove(context, id)) {
+                SnapshotRepository.delete(context, id)
                 call.respond(HttpStatusCode.NoContent)
             } else {
                 call.respondError("No task with that id", HttpStatusCode.NotFound)
