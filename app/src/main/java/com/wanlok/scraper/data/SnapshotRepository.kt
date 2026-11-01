@@ -36,9 +36,29 @@ object SnapshotRepository {
         val json = JSONObject()
             .put("date", IsoDate.format(snapshot.date))
             .put("status", snapshot.status.name)
-        snapshot.data?.let { json.put("data", JSONArray(it)) }
+        snapshot.data?.let { items ->
+            val array = JSONArray()
+            items.forEach { array.put(itemToJson(it)) }
+            json.put("data", array)
+        }
         snapshot.error?.let { json.put("error", it) }
         return json
+    }
+
+    // A text item is a JSON string; an item with fields is a JSON object, with null for a missing field.
+    private fun itemToJson(item: ScrapedItem): Any = when (item) {
+        is ScrapedItem.Text -> item.value
+        is ScrapedItem.Fields -> JSONObject().apply {
+            item.values.forEach { (name, value) -> put(name, value ?: JSONObject.NULL) }
+        }
+    }
+
+    private fun itemFromJson(value: Any): ScrapedItem = when (value) {
+        is String -> ScrapedItem.Text(value)
+        is JSONObject -> ScrapedItem.Fields(
+            value.keys().asSequence().associateWith { if (value.isNull(it)) null else value.getString(it) }
+        )
+        else -> throw JSONException("Unknown item")
     }
 
     // Skips lines that aren't valid snapshots.
@@ -49,7 +69,7 @@ object SnapshotRepository {
             status = LogStatus.valueOf(json.getString("status")),
             data = if (json.has("data")) {
                 val array = json.getJSONArray("data")
-                List(array.length()) { array.getString(it) }
+                List(array.length()) { itemFromJson(array.get(it)) }
             } else {
                 null
             },

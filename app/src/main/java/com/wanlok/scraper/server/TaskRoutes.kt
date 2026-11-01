@@ -1,6 +1,7 @@
 package com.wanlok.scraper.server
 
 import android.content.Context
+import com.wanlok.scraper.data.DataSelector
 import com.wanlok.scraper.data.SnapshotRepository
 import com.wanlok.scraper.data.TaskRepository
 import com.wanlok.scraper.work.TaskRunner
@@ -97,7 +98,7 @@ fun Route.taskRoutes(context: Context) {
     }
 }
 
-private data class TaskInput(val name: String, val url: String, val dataSelector: String)
+private data class TaskInput(val name: String, val url: String, val dataSelector: DataSelector)
 
 /** Reads and validates a task from the request body. Responds 400 and returns null if invalid. */
 private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
@@ -107,24 +108,24 @@ private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
         respondError("The body must be JSON")
         return null
     }
-    val input = TaskInput(
-        name = body.optString("name"),
-        url = body.optString("url"),
-        dataSelector = body.optString("data_selector")
-    )
-    val error = validate(input)
+    val name = body.optString("name")
+    val url = body.optString("url")
+    val error = when {
+        name.isBlank() -> "name is required"
+        !isHttpUrl(url) -> "url must be an http:// or https:// address"
+        else -> null
+    }
     if (error != null) {
         respondError(error)
         return null
     }
-    return input
-}
-
-private fun validate(input: TaskInput): String? = when {
-    input.name.isBlank() -> "name is required"
-    input.dataSelector.isBlank() -> "data_selector is required"
-    !isHttpUrl(input.url) -> "url must be an http:// or https:// address"
-    else -> null
+    val dataSelector = try {
+        DataSelector.fromJson(body.opt("data_selector"))
+    } catch (e: IllegalArgumentException) {
+        respondError(e.message ?: "data_selector is not valid")
+        return null
+    }
+    return TaskInput(name, url, dataSelector)
 }
 
 private fun isHttpUrl(url: String): Boolean = try {

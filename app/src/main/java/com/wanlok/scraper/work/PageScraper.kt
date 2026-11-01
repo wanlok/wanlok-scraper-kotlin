@@ -6,6 +6,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.wanlok.scraper.data.DataSelector
+import com.wanlok.scraper.data.ScrapedItem
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -21,7 +23,7 @@ class ScrapeException(message: String) : Exception(message)
 
 /**
  * Loads a page in a WebView (the system browser engine, so JavaScript runs like in Chrome) and
- * reads the text of the elements a CSS selector matches.
+ * reads the text of the elements a task's data selector describes.
  */
 object PageScraper {
     private const val LOAD_TIMEOUT_MS = 30_000L
@@ -31,8 +33,11 @@ object PageScraper {
     private const val MATCH_TIMEOUT_MS = 10_000L
     private const val POLL_MS = 250L
 
-    /** The text of every element matching [dataSelector], in page order. Throws [ScrapeException]. */
-    suspend fun scrape(context: Context, url: String, dataSelector: String): List<String> =
+    /**
+     * What [dataSelector] describes, one item per matching element in page order. Throws
+     * [ScrapeException].
+     */
+    suspend fun scrape(context: Context, url: String, dataSelector: DataSelector): List<ScrapedItem> =
         // A WebView must be created and used on the main thread.
         withContext(Dispatchers.Main) {
             val webView = WebView(context.applicationContext)
@@ -74,7 +79,10 @@ object PageScraper {
         }
 
     /** Queries until something matches. Returns an empty list if nothing matched in time. */
-    private suspend fun waitForMatches(webView: WebView, dataSelector: String): List<String> {
+    private suspend fun waitForMatches(
+        webView: WebView,
+        dataSelector: DataSelector
+    ): List<ScrapedItem> {
         var items = query(webView, dataSelector)
         withTimeoutOrNull(MATCH_TIMEOUT_MS) {
             while (items.isEmpty()) {
@@ -85,17 +93,52 @@ object PageScraper {
         return items
     }
 
-    private suspend fun query(webView: WebView, dataSelector: String): List<String> {
+    private suspend fun query(webView: WebView, dataSelector: DataSelector): List<ScrapedItem> {
+        val container: String
+        val fields: JSONObject?
+        when (dataSelector) {
+            is DataSelector.Text -> {
+                container = dataSelector.selector
+                fields = null
+            }
+            is DataSelector.Fields -> {
+                container = dataSelector.container
+                fields = JSONObject(dataSelector.fields)
+            }
+        }
+
+        // Without fields each container gives its text; with fields each gives an object, with null
+        // for a field that isn't found inside it.
         val script = """
             (function() {
+                var fields = ${fields ?: "null"};
+                function text(node) {
+                    return (node.textContent || '').replace(/\s+/g, ' ').trim();
+                }
+                var nodes;
                 try {
-                    var nodes = document.querySelectorAll(${JSONObject.quote(dataSelector)});
-                    return JSON.stringify({ items: Array.from(nodes, function(node) {
-                        return (node.textContent || '').replace(/\s+/g, ' ').trim();
-                    }) });
+                    nodes = document.querySelectorAll(${JSONObject.quote(container)});
                 } catch (e) {
                     return JSON.stringify({ invalid: true });
                 }
+                var items = [];
+                for (var i = 0; i < nodes.length; i++) {
+                    if (fields === null) {
+                        items.push(text(nodes[i]));
+                        continue;
+                    }
+                    var item = {};
+                    for (var name in fields) {
+                        try {
+                            var found = nodes[i].querySelector(fields[name]);
+                            item[name] = found ? text(found) : null;
+                        } catch (e) {
+                            return JSON.stringify({ invalidField: name });
+                        }
+                    }
+                    items.push(item);
+                }
+                return JSON.stringify({ items: items });
             })()
         """.trimIndent()
 
@@ -108,7 +151,23 @@ object PageScraper {
 
         val result = JSONObject(text)
         if (result.optBoolean("invalid")) throw ScrapeException("invalid data selector")
+        val invalidField = result.optString("invalidField")
+        if (invalidField.isNotEmpty()) throw ScrapeException("invalid selector for field $invalidField")
+
         val items = result.getJSONArray("items")
-        return List(items.length()) { items.getString(it) }
+        return List(items.length()) { index ->
+            when (dataSelector) {
+                is DataSelector.Text -> ScrapedItem.Text(items.getString(index))
+                is DataSelector.Fields -> {
+                    val item = items.getJSONObject(index)
+                    // Keep the order of the task's fields.
+                    ScrapedItem.Fields(
+                        dataSelector.fields.keys.associateWith { name ->
+                            if (item.isNull(name)) null else item.getString(name)
+                        }
+                    )
+                }
+            }
+        }
     }
 }

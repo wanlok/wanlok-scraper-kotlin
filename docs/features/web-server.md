@@ -12,10 +12,20 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
 - `GET /` returns `app/src/main/assets/index.html`. Open the address in a desktop browser on the same Wi-Fi to check it works.
 - Task API (JSON):
   - `GET /api/tasks` returns all tasks.
-  - `GET /api/tasks/{id}` returns that task with its snapshots, newest first: `{ id, name, url, data_selector, snapshots: [...] }`. A completed snapshot is `{ date, status: "TASK_COMPLETED", data: ["text of the first match", "text of the second match", ...] }` and a failed one is `{ date, status: "TASK_FAILED", error }`. `?limit=` sets how many snapshots (default 100, maximum 1000). A task that never ran has `"snapshots": []`. It returns 404 if there is no such task.
+  - `GET /api/tasks/{id}` returns that task with its snapshots, newest first: `{ id, name, url, data_selector, snapshots: [...] }`, with `data_selector` exactly as it was sent. A completed snapshot is `{ date, status: "TASK_COMPLETED", data: [...] }` (see Data selector below) and a failed one is `{ date, status: "TASK_FAILED", error }`. `?limit=` sets how many snapshots (default 100, maximum 1000). A task that never ran has `"snapshots": []`. It returns 404 if there is no such task.
   - `POST /api/tasks` with `{ "name", "url", "data_selector" }` adds a task and returns it (201). It returns 400 with `{ "error" }` if `name` or `data_selector` is blank, or `url` is not an http(s) address.
   - `PUT /api/tasks/{id}` with the same body replaces that task, keeping its id, and returns it (200). It has the same 400 errors, or returns 404 if there is no such task.
   - `DELETE /api/tasks/{id}` removes a task and its snapshots (204), or returns 404 if there is no such task.
+- **Data selector.** `data_selector` is either a string or an object:
+  - A string is a CSS selector. Each matching element gives one text, so `data` is a list of strings: `"data_selector": "p.name"` gives `"data": ["First", "Second"]`.
+  - An object has exactly one key, the container selector, whose value maps field names to CSS selectors searched inside each container. Each container gives one object, so `data` is a list of objects. A field that isn't found inside a container is `null`.
+    ```json
+    "data_selector": { "div.card": { "name": "h6.card-title", "price": ".price" } }
+    ```
+    ```json
+    "data": [ { "name": "ASUS ROG ASTRAL", "price": "HK$ 12,999" }, { "name": "INNO 3D RTX5070", "price": null } ]
+    ```
+  - It returns 400 if the object has more or fewer than one key, if the container's value isn't an object or has no fields (use the string form), or if a field name or selector is blank.
 - `POST /api/run` runs all saved tasks now, the same code as the periodic job, and returns 204 when they have finished. Results appear in the Home log.
 - On Android 13+, Start first asks for the notification permission. The server starts whether or not it is granted.
 

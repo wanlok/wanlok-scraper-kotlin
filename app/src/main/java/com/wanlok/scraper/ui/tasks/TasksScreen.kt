@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
+import com.wanlok.scraper.data.DataSelector
 import com.wanlok.scraper.data.Task
 import com.wanlok.scraper.data.TaskRepository
 import com.wanlok.scraper.ui.theme.ScraperTheme
@@ -35,7 +36,7 @@ private val sampleTasks = List(20) { index ->
         id = index.toString(),
         name = "Task ${index + 1}",
         url = "https://example.com/page-${index + 1}",
-        dataSelector = "h1.title"
+        dataSelector = DataSelector.Text("h1.title")
     )
 }
 
@@ -77,7 +78,7 @@ fun TasksScreen(modifier: Modifier = Modifier) {
                         supportingContent = {
                             Column {
                                 Text(text = task.url)
-                                Text(text = task.dataSelector)
+                                Text(text = task.dataSelector.label)
                             }
                         }
                     )

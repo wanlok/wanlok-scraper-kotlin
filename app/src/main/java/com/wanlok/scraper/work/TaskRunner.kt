@@ -3,6 +3,7 @@ package com.wanlok.scraper.work
 import android.content.Context
 import com.wanlok.scraper.data.LogRepository
 import com.wanlok.scraper.data.LogStatus
+import com.wanlok.scraper.data.ScrapedItem
 import com.wanlok.scraper.data.Snapshot
 import com.wanlok.scraper.data.SnapshotRepository
 import com.wanlok.scraper.data.Task
@@ -34,7 +35,7 @@ object TaskRunner {
         }
     }
 
-    private fun completed(context: Context, task: Task, data: List<String>) {
+    private fun completed(context: Context, task: Task, data: List<ScrapedItem>) {
         val snapshot = Snapshot(Date(), LogStatus.TASK_COMPLETED, data = data)
         SnapshotRepository.append(context, task.id, snapshot)
         LogRepository.append(context, LogStatus.TASK_COMPLETED, task.name)

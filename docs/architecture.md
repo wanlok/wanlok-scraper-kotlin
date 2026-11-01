@@ -32,8 +32,9 @@ com.wanlok.scraper
     ├── LogRepository.kt       today's logs shown on screen, saved as JSON lines, one file per day
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
     ├── Task.kt                a scraping task: id, name, url, dataSelector (text extraction only)
+    ├── DataSelector.kt        what a task reads: one CSS selector, or a container with named fields
     ├── TaskRepository.kt      the saved tasks (tasks.json)
-    ├── Snapshot.kt            what one run of a task produced: { date, status, data (a list) or error }
+    ├── Snapshot.kt            what one run of a task produced: { date, status, data (a list of texts or of field objects) or error }
     ├── SnapshotRepository.kt  the snapshots of each task (snapshots/<id>.jsonl)
     └── IsoDate.kt             ISO 8601 date text, used for the stored dates
 ```
