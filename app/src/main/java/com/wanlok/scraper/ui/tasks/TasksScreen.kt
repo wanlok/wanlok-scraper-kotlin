@@ -35,7 +35,7 @@ private val sampleTasks = List(20) { index ->
         id = index.toString(),
         name = "Task ${index + 1}",
         url = "https://example.com/page-${index + 1}",
-        selector = "h1.title"
+        dataSelector = "h1.title"
     )
 }
 
@@ -77,7 +77,7 @@ fun TasksScreen(modifier: Modifier = Modifier) {
                         supportingContent = {
                             Column {
                                 Text(text = task.url)
-                                Text(text = task.selector)
+                                Text(text = task.dataSelector)
                             }
                         }
                     )

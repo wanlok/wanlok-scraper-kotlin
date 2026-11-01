@@ -33,13 +33,13 @@ object TaskRepository {
     }
 
     @Synchronized
-    fun add(context: Context, name: String, url: String, selector: String): Task {
+    fun add(context: Context, name: String, url: String, dataSelector: String): Task {
         load(context)
         val task = Task(
             id = UUID.randomUUID().toString(),
             name = name.trim(),
             url = url.trim(),
-            selector = selector.trim()
+            dataSelector = dataSelector.trim()
         )
         val updated = _tasks.value + task
         _tasks.value = updated
@@ -49,11 +49,11 @@ object TaskRepository {
 
     /** Replaces the task with this [id], keeping the id. Returns null if there is no such task. */
     @Synchronized
-    fun update(context: Context, id: String, name: String, url: String, selector: String): Task? {
+    fun update(context: Context, id: String, name: String, url: String, dataSelector: String): Task? {
         load(context)
         val current = _tasks.value
         if (current.none { it.id == id }) return null
-        val task = Task(id = id, name = name.trim(), url = url.trim(), selector = selector.trim())
+        val task = Task(id = id, name = name.trim(), url = url.trim(), dataSelector = dataSelector.trim())
         val updated = current.map { if (it.id == id) task else it }
         _tasks.value = updated
         file?.writeText(toJson(updated))
@@ -74,7 +74,7 @@ object TaskRepository {
         .put("id", task.id)
         .put("name", task.name)
         .put("url", task.url)
-        .put("selector", task.selector)
+        .put("data_selector", task.dataSelector)
 
     fun toJson(tasks: List<Task>): String {
         val array = JSONArray()
@@ -90,7 +90,7 @@ object TaskRepository {
                 id = item.getString("id"),
                 name = item.getString("name"),
                 url = item.getString("url"),
-                selector = item.getString("selector")
+                dataSelector = item.getString("data_selector")
             )
         }
     } catch (e: JSONException) {

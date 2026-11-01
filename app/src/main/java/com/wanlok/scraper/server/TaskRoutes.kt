@@ -63,7 +63,7 @@ fun Route.taskRoutes(context: Context) {
 
         post {
             val input = call.receiveTaskInput() ?: return@post
-            val task = TaskRepository.add(context, input.name, input.url, input.selector)
+            val task = TaskRepository.add(context, input.name, input.url, input.dataSelector)
             call.respondText(
                 TaskRepository.toJson(task).toString(),
                 ContentType.Application.Json,
@@ -74,7 +74,7 @@ fun Route.taskRoutes(context: Context) {
         put("{id}") {
             val input = call.receiveTaskInput() ?: return@put
             val id = call.parameters["id"].orEmpty()
-            val task = TaskRepository.update(context, id, input.name, input.url, input.selector)
+            val task = TaskRepository.update(context, id, input.name, input.url, input.dataSelector)
             if (task != null) {
                 call.respondText(
                     TaskRepository.toJson(task).toString(),
@@ -97,7 +97,7 @@ fun Route.taskRoutes(context: Context) {
     }
 }
 
-private data class TaskInput(val name: String, val url: String, val selector: String)
+private data class TaskInput(val name: String, val url: String, val dataSelector: String)
 
 /** Reads and validates a task from the request body. Responds 400 and returns null if invalid. */
 private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
@@ -110,7 +110,7 @@ private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
     val input = TaskInput(
         name = body.optString("name"),
         url = body.optString("url"),
-        selector = body.optString("selector")
+        dataSelector = body.optString("data_selector")
     )
     val error = validate(input)
     if (error != null) {
@@ -122,7 +122,7 @@ private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
 
 private fun validate(input: TaskInput): String? = when {
     input.name.isBlank() -> "name is required"
-    input.selector.isBlank() -> "selector is required"
+    input.dataSelector.isBlank() -> "data_selector is required"
     !isHttpUrl(input.url) -> "url must be an http:// or https:// address"
     else -> null
 }

@@ -30,7 +30,7 @@ com.wanlok.scraper
     ├── LogStatus.kt           STARTED, STOPPED, TASK_RUNNING, TASK_COMPLETED or TASK_FAILED
     ├── LogRepository.kt       today's logs shown on screen, saved as JSON lines, one file per day
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
-    ├── Task.kt                a scraping task: id, name, url, selector (text extraction only)
+    ├── Task.kt                a scraping task: id, name, url, dataSelector (text extraction only)
     ├── TaskRepository.kt      the saved tasks (tasks.json)
     ├── Snapshot.kt            what one run of a task produced: { date, status, data or error }
     ├── SnapshotRepository.kt  the snapshots of each task (snapshots/<id>.jsonl)

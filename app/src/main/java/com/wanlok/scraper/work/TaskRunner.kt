@@ -17,7 +17,7 @@ import java.io.IOException
 import java.util.Date
 
 /**
- * Runs the saved tasks: fetch each page, save a snapshot with the text of the element its selector
+ * Runs the saved tasks: fetch each page, save a snapshot with the text of the element its data selector
  * matches (or the error), and log the outcome.
  */
 object TaskRunner {
@@ -33,9 +33,9 @@ object TaskRunner {
         LogRepository.append(context, LogStatus.TASK_RUNNING, task.name)
         try {
             val document = Jsoup.connect(task.url).timeout(TIMEOUT_MS).get()
-            val element = document.selectFirst(task.selector)
+            val element = document.selectFirst(task.dataSelector)
             if (element == null) {
-                failed(context, task, "selector matched nothing")
+                failed(context, task, "data selector matched nothing")
             } else {
                 completed(context, task, element.text())
             }
@@ -44,7 +44,7 @@ object TaskRunner {
         } catch (e: UnsupportedMimeTypeException) {
             failed(context, task, "not an HTML page")
         } catch (e: Selector.SelectorParseException) {
-            failed(context, task, "invalid selector")
+            failed(context, task, "invalid data selector")
         } catch (e: IllegalArgumentException) {
             failed(context, task, "invalid URL")
         } catch (e: IOException) {
