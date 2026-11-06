@@ -38,7 +38,8 @@ object TaskRepository {
         name: String,
         url: String,
         pageSelector: PageSelector?,
-        dataSelector: DataSelector
+        dataSelector: DataSelector,
+        enabled: Boolean
     ): Task {
         load(context)
         val task = Task(
@@ -46,7 +47,8 @@ object TaskRepository {
             name = name.trim(),
             url = url.trim(),
             pageSelector = pageSelector,
-            dataSelector = dataSelector
+            dataSelector = dataSelector,
+            enabled = enabled
         )
         val updated = _tasks.value + task
         _tasks.value = updated
@@ -62,7 +64,8 @@ object TaskRepository {
         name: String,
         url: String,
         pageSelector: PageSelector?,
-        dataSelector: DataSelector
+        dataSelector: DataSelector,
+        enabled: Boolean
     ): Task? {
         load(context)
         val current = _tasks.value
@@ -72,7 +75,8 @@ object TaskRepository {
             name = name.trim(),
             url = url.trim(),
             pageSelector = pageSelector,
-            dataSelector = dataSelector
+            dataSelector = dataSelector,
+            enabled = enabled
         )
         val updated = current.map { if (it.id == id) task else it }
         _tasks.value = updated
@@ -96,6 +100,7 @@ object TaskRepository {
         .put("url", task.url)
         .apply { task.pageSelector?.let { put("page_selector", it.toJson()) } }
         .put("data_selector", task.dataSelector.toJson())
+        .put("enabled", task.enabled)
 
     fun toJson(tasks: List<Task>): String {
         val array = JSONArray()
@@ -116,7 +121,8 @@ object TaskRepository {
                 } else {
                     null
                 },
-                dataSelector = DataSelector.fromJson(item.opt("data_selector"))
+                dataSelector = DataSelector.fromJson(item.opt("data_selector")),
+                enabled = item.getBoolean("enabled")
             )
         }
     } catch (e: JSONException) {

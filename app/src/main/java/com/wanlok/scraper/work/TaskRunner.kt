@@ -37,12 +37,19 @@ object TaskRunner {
     val isRunning: Boolean get() = lock.isLocked
 
     /**
-     * Runs every saved task, one at a time. A task that fails doesn't stop the others. A run that
-     * starts while another is in progress waits for it to finish.
+     * Runs every enabled task, one at a time. A task that is not enabled is logged and skipped, with
+     * no snapshot. A task that fails doesn't stop the others. A run that starts while another is in
+     * progress waits for it to finish.
      */
     suspend fun runAll(context: Context) = lock.withLock {
         TaskRepository.load(context)
-        TaskRepository.tasks.value.forEach { run(context, it) }
+        TaskRepository.tasks.value.forEach { task ->
+            if (task.enabled) {
+                run(context, task)
+            } else {
+                LogRepository.append(context, LogStatus.TASK_SKIPPED, task.name)
+            }
+        }
     }
 
     /** Starts [runAll] and returns at once. The outcome is in the log. */

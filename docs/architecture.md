@@ -29,10 +29,11 @@ com.wanlok.scraper
 │   └── NetworkAddress.kt  the phone's local IPv4 address
 └── data
     ├── WLog.kt                one log: { date, status, content? }
-    ├── LogStatus.kt           STARTED, STOPPED, TASK_RUNNING, TASK_PAGES_FOUND, TASK_PAGE_COMPLETED, TASK_COMPLETED or TASK_FAILED
+    ├── LogStatus.kt           STARTED, STOPPED, TASK_RUNNING, TASK_PAGES_FOUND, TASK_PAGE_COMPLETED, TASK_COMPLETED, TASK_FAILED or TASK_SKIPPED
     ├── LogRepository.kt       today's logs shown on screen, saved as JSON lines, one file per day
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
-    ├── Task.kt                a scraping task: id, name, url, pageSelector (optional), dataSelector (text extraction only)
+    ├── Task.kt                a scraping task: id, name, url, pageSelector (optional), dataSelector (text extraction only), enabled (false = runs skip it)
+    ├── Enabled.kt             reads the enabled field of the API body (left out = true, not a boolean = error)
     ├── PageSelector.kt        how to find the pages of a list: pagination link selector -> page query parameter
     ├── DataSelector.kt        what a task reads: one CSS selector, or a container with named fields
     ├── TaskRepository.kt      the saved tasks (tasks.json)

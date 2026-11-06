@@ -37,7 +37,8 @@ private val sampleTasks = List(20) { index ->
         name = "Task ${index + 1}",
         url = "https://example.com/page-${index + 1}",
         pageSelector = null,
-        dataSelector = DataSelector.Text("h1.title")
+        dataSelector = DataSelector.Text("h1.title"),
+        enabled = index % 5 != 0
     )
 }
 
@@ -80,6 +81,7 @@ fun TasksScreen(modifier: Modifier = Modifier) {
                             Column {
                                 Text(text = task.url)
                                 Text(text = task.dataSelector.label)
+                                if (!task.enabled) Text(text = "Disabled")
                             }
                         }
                     )

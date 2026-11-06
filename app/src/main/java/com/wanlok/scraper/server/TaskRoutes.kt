@@ -2,6 +2,7 @@ package com.wanlok.scraper.server
 
 import android.content.Context
 import com.wanlok.scraper.data.DataSelector
+import com.wanlok.scraper.data.Enabled
 import com.wanlok.scraper.data.PageSelector
 import com.wanlok.scraper.data.SnapshotRepository
 import com.wanlok.scraper.data.TaskRepository
@@ -103,7 +104,7 @@ fun Route.taskRoutes(context: Context) {
         post {
             val input = call.receiveTaskInput() ?: return@post
             val task = TaskRepository.add(
-                context, input.name, input.url, input.pageSelector, input.dataSelector
+                context, input.name, input.url, input.pageSelector, input.dataSelector, input.enabled
             )
             call.respondText(
                 TaskRepository.toJson(task).toString(),
@@ -116,7 +117,7 @@ fun Route.taskRoutes(context: Context) {
             val input = call.receiveTaskInput() ?: return@put
             val id = call.parameters["id"].orEmpty()
             val task = TaskRepository.update(
-                context, id, input.name, input.url, input.pageSelector, input.dataSelector
+                context, id, input.name, input.url, input.pageSelector, input.dataSelector, input.enabled
             )
             if (task != null) {
                 call.respondText(
@@ -144,7 +145,8 @@ private data class TaskInput(
     val name: String,
     val url: String,
     val pageSelector: PageSelector?,
-    val dataSelector: DataSelector
+    val dataSelector: DataSelector,
+    val enabled: Boolean
 )
 
 /** Reads and validates a task from the request body. Responds 400 and returns null if invalid. */
@@ -183,7 +185,14 @@ private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
         respondError(e.message ?: "data_selector is not valid")
         return null
     }
-    return TaskInput(name, url, pageSelector, dataSelector)
+    // enabled is optional and means true when left out (or null).
+    val enabled = try {
+        Enabled.fromJson(if (body.isNull("enabled")) null else body.opt("enabled"))
+    } catch (e: IllegalArgumentException) {
+        respondError(e.message ?: "enabled is not valid")
+        return null
+    }
+    return TaskInput(name, url, pageSelector, dataSelector, enabled)
 }
 
 private fun isHttpUrl(url: String): Boolean = try {

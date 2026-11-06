@@ -12,10 +12,17 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
 - `GET /` returns `app/src/main/assets/index.html`. Open the address in a desktop browser on the same Wi-Fi to check it works.
 - Task API (JSON):
   - `GET /api/tasks` returns all tasks.
-  - `GET /api/tasks/{id}` returns that task with its snapshots, newest first: `{ id, name, url, page_selector, data_selector, snapshots: [...] }`, with `page_selector` (only if the task has one) and `data_selector` exactly as they were sent. A completed snapshot is `{ date, status: "TASK_COMPLETED", data: [...] }` (see Data selector below) and a failed one is `{ date, status: "TASK_FAILED", error }`. `?limit=` sets how many snapshots (default 100, maximum 1000). A task that never ran has `"snapshots": []`. It returns 404 if there is no such task.
-  - `POST /api/tasks` with `{ "name", "url", "page_selector", "data_selector" }` adds a task and returns it (201). `page_selector` is optional. It returns 400 with `{ "error" }` if `name` or `data_selector` is blank, `url` is not an http(s) address, or `page_selector` or `data_selector` is not valid (see below).
-  - `PUT /api/tasks/{id}` with the same body replaces that task, keeping its id, and returns it (200). A `page_selector` that is left out is removed from the task. It has the same 400 errors, or returns 404 if there is no such task.
+  - `GET /api/tasks/{id}` returns that task with its snapshots, newest first: `{ id, name, url, page_selector, data_selector, enabled, snapshots: [...] }`, with `page_selector` (only if the task has one) and `data_selector` exactly as they were sent. A completed snapshot is `{ date, status: "TASK_COMPLETED", data: [...] }` (see Data selector below) and a failed one is `{ date, status: "TASK_FAILED", error }`. `?limit=` sets how many snapshots (default 100, maximum 1000). A task that never ran has `"snapshots": []`. It returns 404 if there is no such task.
+  - `POST /api/tasks` with `{ "name", "url", "page_selector", "data_selector", "enabled" }` adds a task and returns it (201). `page_selector` and `enabled` are optional. It returns 400 with `{ "error" }` if `name` or `data_selector` is blank, `url` is not an http(s) address, `enabled` is not `true` or `false`, or `page_selector` or `data_selector` is not valid (see below).
+  - `PUT /api/tasks/{id}` with the same body replaces that task, keeping its id, and returns it (200). A `page_selector` that is left out is removed from the task, and an `enabled` that is left out becomes `true`. It has the same 400 errors, or returns 404 if there is no such task.
   - `DELETE /api/tasks/{id}` removes a task and its snapshots (204), or returns 404 if there is no such task.
+- **Enabled** (optional boolean, default `true`). A task with `"enabled": false` is skipped by every run, the periodic job and `POST /api/run`. Skipping is not a failure: Home logs `TASK_SKIPPED` with the task name and no snapshot is saved. A run where every task is disabled just logs the skips and finishes. A task as the API returns it:
+  ```json
+  { "id": "…", "name": "CAP graphics cards", "url": "https://www.cap.com.hk/tc/products/category/graphics-card",
+    "page_selector": { ".pagination a": "page" },
+    "data_selector": { "div.product-card": { "name": ".card-title", "price": ".price-current" } },
+    "enabled": true }
+  ```
 - **Page selector** (optional). `page_selector` is an object of one or more pairs, a CSS selector for the pagination links and the name of the page query parameter: `"page_selector": { ".pagination a": "page" }`. A run reads the task URL and every other page it finds, in page order, and puts all their data in one snapshot. Without it only the task URL is read. See Pagination below.
 - **Data selector.** `data_selector` is either a string or an object, applied to every page:
   - A string is a CSS selector. Each matching element gives one text, so `data` is a list of strings: `"data_selector": "p.name"` gives `"data": ["First", "Second"]`.
@@ -27,7 +34,7 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
     "data": [ { "name": "ASUS ROG ASTRAL", "price": "HK$ 12,999" }, { "name": "INNO 3D RTX5070", "price": null } ]
     ```
   - It returns 400 if the object has more or fewer than one key, if the container's value isn't an object or has no fields (use the string form), or if a field name or selector is blank.
-- `POST /api/run` starts all saved tasks now, the same code as the periodic job, and returns 202 at once without waiting for them to finish, since a run can take minutes. Progress and results appear in the Home log, and the data in the snapshots. It returns 409 `{ "error" }` if a run is already in progress. The run continues even if the server is stopped.
+- `POST /api/run` starts all enabled tasks now, the same code as the periodic job, and returns 202 at once without waiting for them to finish, since a run can take minutes. Progress and results appear in the Home log, and the data in the snapshots. It returns 409 `{ "error" }` if a run is already in progress. The run continues even if the server is stopped.
 - On Android 13+, Start first asks for the notification permission. The server starts whether or not it is granted.
 
 ## Pagination
