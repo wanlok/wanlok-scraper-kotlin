@@ -7,6 +7,7 @@ While the user has pressed **Start Scraper**, the phone runs a job about every 1
 ## Behaviour
 - **Start Scraper** schedules unique periodic work named `run_tasks_every_15_minutes` (15 minutes, requires a network connection). Starting it while the job exists changes nothing (`KEEP`).
 - **Stop Scraper** cancels that work.
+- Both write a line to the Home log, like the web server does: `STARTED  Scraper` and `STOPPED  Scraper`.
 - Start Scraper is enabled only when no job exists; Stop Scraper only when one does. This comes from WorkManager's status, so it survives closing and reopening the app.
 - Each run goes through the saved tasks one at a time (see Task run). The job itself always succeeds; failures are logged per task.
 

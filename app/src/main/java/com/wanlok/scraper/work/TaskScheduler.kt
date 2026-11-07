@@ -6,6 +6,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.wanlok.scraper.data.LogRepository
+import com.wanlok.scraper.data.LogStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.concurrent.TimeUnit
@@ -26,10 +28,12 @@ object TaskScheduler {
         // KEEP: tapping Start twice doesn't create a second job.
         WorkManager.getInstance(context)
             .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+        LogRepository.append(context, LogStatus.STARTED, "Scraper")
     }
 
     fun stop(context: Context) {
         WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+        LogRepository.append(context, LogStatus.STOPPED, "Scraper")
     }
 
     // Periodic work sits in ENQUEUED between runs; it only becomes finished (CANCELLED) after stop().
