@@ -10,12 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -30,17 +30,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.wanlok.scraper.data.LogRepository
 import com.wanlok.scraper.data.LogStatus
 import com.wanlok.scraper.data.WLog
 import com.wanlok.scraper.server.ServerService
-import com.wanlok.scraper.ui.icons.Stop
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import com.wanlok.scraper.work.TaskScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import java.util.Date
@@ -74,31 +73,12 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         if (!isPreview) withContext(Dispatchers.IO) { LogRepository.load(context) }
     }
 
-    // If the job is still scheduled but the web server is gone (the system killed the app's
-    // process), bring the server back. This only checks when the screen opens, so pressing Stop
-    // can't trigger it.
-    LaunchedEffect(Unit) {
-        if (!isPreview && TaskScheduler.isRunning(context).first() && !ServerService.running.value) {
-            ServerService.start(context)
-        }
-    }
-
-    // Start runs the periodic job and the web server together.
-    fun start() {
-        TaskScheduler.start(context)
-        ServerService.start(context)
-    }
-    // Android 13+ asks before showing the server's notification. Whatever was tapped goes ahead
-    // either way, so it is kept here while the permission dialog is open.
-    var pendingStart by remember { mutableStateOf<(() -> Unit)?>(null) }
+    // Android 13+ asks before showing the server's notification. The server starts either way.
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) {
-        pendingStart?.invoke()
-        pendingStart = null
-    }
+    ) { ServerService.start(context) }
 
-    fun withNotificationPermission(action: () -> Unit) {
+    fun startWebServer() {
         val needsPermission =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 ContextCompat.checkSelfPermission(
@@ -106,10 +86,9 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                     Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
         if (needsPermission) {
-            pendingStart = action
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            action()
+            ServerService.start(context)
         }
     }
 
@@ -130,32 +109,38 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                             expanded = menuOpen,
                             onDismissRequest = { menuOpen = false }
                         ) {
+                            MenuSubtitle("Web Server")
                             DropdownMenuItem(
-                                text = { Text("Start Web Server and Scraper") },
-                                leadingIcon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
-                                enabled = !(jobRunning && serverRunning),
-                                onClick = {
-                                    menuOpen = false
-                                    withNotificationPermission { start() }
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Start Web Server") },
-                                leadingIcon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
+                                text = { Text("Start") },
                                 enabled = !serverRunning,
                                 onClick = {
                                     menuOpen = false
-                                    withNotificationPermission { ServerService.start(context) }
+                                    startWebServer()
                                 }
                             )
                             DropdownMenuItem(
                                 text = { Text("Stop") },
-                                leadingIcon = { Icon(Icons.Filled.Stop, contentDescription = null) },
-                                enabled = jobRunning || serverRunning,
+                                enabled = serverRunning,
+                                onClick = {
+                                    menuOpen = false
+                                    ServerService.stop(context)
+                                }
+                            )
+                            MenuSubtitle("Scraper")
+                            DropdownMenuItem(
+                                text = { Text("Start") },
+                                enabled = !jobRunning,
+                                onClick = {
+                                    menuOpen = false
+                                    TaskScheduler.start(context)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Stop") },
+                                enabled = jobRunning,
                                 onClick = {
                                     menuOpen = false
                                     TaskScheduler.stop(context)
-                                    ServerService.stop(context)
                                 }
                             )
                         }
@@ -171,6 +156,17 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                 .fillMaxSize()
         )
     }
+}
+
+/** A small heading for a group of items in the menu. */
+@Composable
+private fun MenuSubtitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+    )
 }
 
 @Preview(showBackground = true)

@@ -1,13 +1,13 @@
 # Background job
 
-> **Status: first version.** The dummy POST to the backend was removed. **Start** schedules a periodic job that runs the saved tasks, saves a snapshot of what it extracts and logs the outcome. Snapshots are served by the API; sending them to Firestore is not built yet.
+> **Status: first version.** The dummy POST to the backend was removed. **Start Scraper** schedules a periodic job that runs the saved tasks, saves a snapshot of what it extracts and logs the outcome. Snapshots are served by the API; sending them to Firestore is not built yet.
 ## Goal
-While the user has pressed **Start**, the phone runs a job about every 15 minutes, even when the app is closed. **Stop** cancels it.
+While the user has pressed **Start Scraper**, the phone runs a job about every 15 minutes, even when the app is closed. **Stop Scraper** cancels it. They are the Start and Stop items under the Scraper heading of the menu on Home, apart from the Start and Stop of the web server.
 
 ## Behaviour
-- **Start** schedules unique periodic work named `run_tasks_every_15_minutes` (15 minutes, requires a network connection). Pressing Start while the job exists changes nothing (`KEEP`).
-- **Stop** cancels that work.
-- Start is enabled only when no job exists; Stop only when one does. This comes from WorkManager's status, so it survives closing and reopening the app.
+- **Start Scraper** schedules unique periodic work named `run_tasks_every_15_minutes` (15 minutes, requires a network connection). Starting it while the job exists changes nothing (`KEEP`).
+- **Stop Scraper** cancels that work.
+- Start Scraper is enabled only when no job exists; Stop Scraper only when one does. This comes from WorkManager's status, so it survives closing and reopening the app.
 - Each run goes through the saved tasks one at a time (see Task run). The job itself always succeeds; failures are logged per task.
 
 ## Task run
@@ -35,5 +35,5 @@ Logs are saved in one file per day, `logs/yyyyMMdd.txt` (app private storage), o
 ## Known limits
 - 15 minutes is WorkManager's minimum and a target, not a promise: Doze, battery saver and some phone makers delay runs.
 - Force-stopping or uninstalling the app cancels the job.
-- Changing the job's settings (interval, constraints) does not apply to an existing job while `KEEP` is used. Press Stop then Start, or switch to `UPDATE`.
+- Changing the job's settings (interval, constraints) does not apply to an existing job while `KEEP` is used. Use Stop Scraper then Start Scraper, or switch to `UPDATE`.
 - Each day's log is read into memory in full when the app starts; fine at this size.

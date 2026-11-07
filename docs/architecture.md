@@ -12,10 +12,9 @@ com.wanlok.scraper
 ├── MainActivity.kt        entry point: setContent { ScraperTheme { AppNavigation() } }
 ├── ui
 │   ├── navigation/        AppNavigation.kt (NavigationSuiteScaffold), AppDestination.kt (top-level screens)
-│   ├── landing/           LandingScreen.kt (log + Start/Stop in a menu in the top bar), LogViewer.kt
+│   ├── landing/           LandingScreen.kt (log + a top bar menu to start and stop the web server and the scraper), LogViewer.kt
 │   ├── tasks/             TasksScreen.kt (read-only list of the saved tasks)
 │   ├── settings/          SettingsScreen.kt (scrollable list of settings, saved automatically)
-│   ├── icons/             StopIcon.kt (Stop is only in material-icons-extended, so it is drawn here)
 │   └── theme/             Color.kt, Theme.kt, Type.kt
 ├── work
 │   ├── TaskScheduler.kt   starts/stops the periodic job, exposes its running state
@@ -49,8 +48,8 @@ com.wanlok.scraper
 ## Data flow
 
 ```
-Start tapped -> TaskScheduler.start() -> WorkManager (unique periodic work)
-             -> ServerService.start() -> foreground service -> Ktor server on port 8080
+Start Scraper tapped    -> TaskScheduler.start() -> WorkManager (unique periodic work)
+Start Web Server tapped -> ServerService.start() -> foreground service -> Ktor server on port 8080
                                               |
                                   every ~15 min: TaskWorker.doWork() -> TaskRunner.runAll()
 
@@ -61,9 +60,9 @@ LogRepository.append(...) -> logs/yyyyMMdd.txt + StateFlow
 TasksScreen collects TaskRepository.tasks (tasks.json)
 ```
 
-- Button state is not held by the screen. `TaskScheduler.isRunning()` reads the job's status from WorkManager, and `ServerService.running` (kept in memory) says whether the web server is serving. Start is enabled unless both are running, and Stop if either is. When the Home screen opens and the job is scheduled but the server isn't running (the system killed the process), it starts the server again.
+- Button state is not held by the screen. `TaskScheduler.isRunning()` reads the job's status from WorkManager, and `ServerService.running` (kept in memory) says whether the web server is serving. The scraper and the web server are started and stopped separately from the menu on Home: each Start item is enabled only when that part isn't running, and each Stop item only when it is. Nothing restarts the server by itself.
 - Settings are saved automatically (no Save button) when the user presses Done or leaves a field. The saved name is not used by anything right now; it was sent in the removed dummy POST.
-- Tasks are not added in the Android UI. Start launches a web server on the phone for a desktop browser (see `features/web-server.md`); adding tasks through it comes next.
+- Tasks are not added in the Android UI. Start Web Server launches a web server on the phone for a desktop browser (see `features/web-server.md`); adding tasks through it comes next.
 - There is no ViewModel yet. Add one per screen when a screen gains real logic.
 
 ## Backend
