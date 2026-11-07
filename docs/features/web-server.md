@@ -6,7 +6,7 @@
 Let a desktop browser on the same network add, list and delete scraping tasks. The tasks are stored on the phone only (`TaskRepository`).
 
 ## Behaviour
-- **Start** also starts `ServerService`, a foreground service that runs a Ktor (CIO) server on port **8080**, listening on all interfaces. **Stop** stops it.
+- **Start Web Server and Scraper** (in the menu on Home) also starts `ServerService`, a foreground service that runs a Ktor (CIO) server on port **8080**, listening on all interfaces. **Start Web Server** starts only the server, without the periodic job, so tasks can be edited and `POST /api/run` can be used without scheduling. **Stop** stops both.
 - The service shows a notification with the address, for example `http://192.168.1.23:8080`. Tapping it opens the app.
 - The address is also logged on Home: `STARTED  Web server http://192.168.1.23:8080`.
 - `GET /` returns `app/src/main/assets/index.html`. Open the address in a desktop browser on the same Wi-Fi to check it works.
@@ -35,7 +35,7 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
     ```
   - It returns 400 if the object has more or fewer than one key, if the container's value isn't an object or has no fields (use the string form), or if a field name or selector is blank.
 - `POST /api/run` starts all enabled tasks now, the same code as the periodic job, and returns 202 at once without waiting for them to finish, since a run can take minutes. Progress and results appear in the Home log, and the data in the snapshots. It returns 409 `{ "error" }` if a run is already in progress. The run continues even if the server is stopped.
-- On Android 13+, Start first asks for the notification permission. The server starts whether or not it is granted.
+- On Android 13+, both start items first ask for the notification permission. The server starts whether or not it is granted.
 
 ## Pagination
 For a list that is spread over several pages, a task has a `page_selector`. The task URL is scraped as page 1, and the other pages are worked out from the pagination links on it. The page list function is `PageUrls` / `PageScraper.pageUrls`, and `POST /api/pages` tests it.
@@ -63,5 +63,5 @@ For a list that is spread over several pages, a task has a `page_selector`. The 
 - Same network only. Some routers block device-to-device traffic (client isolation).
 - Plain HTTP and no authentication yet: anyone on the network can open the page.
 - Without a wake lock, Doze can make the phone unreachable after the screen has been off for a while.
-- If the app is killed while it is closed (swiping it away on Xiaomi/MIUI, for example), the web server stops and nothing can restart it until the app is opened again. The 15 minute job survives a swipe, so tasks keep running. When the app is opened and the job is still scheduled but the server is gone, the server is started again automatically. Until then the Start button is enabled (the buttons look at both the job and the server), and pressing it also starts the server.
+- If the app is killed while it is closed (swiping it away on Xiaomi/MIUI, for example), the web server stops and nothing can restart it until the app is opened again. The 15 minute job survives a swipe, so tasks keep running. When the app is opened and the job is still scheduled but the server is gone, the server is started again automatically. Until then Start Web Server and Scraper is enabled (the menu looks at both the job and the server), and choosing it also starts the server.
 - To make Xiaomi/MIUI kill the app less often, set the app to "No restrictions", enable Autostart, and lock the app in the recent apps list.

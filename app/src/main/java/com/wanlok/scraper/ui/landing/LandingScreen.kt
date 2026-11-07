@@ -88,12 +88,17 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         TaskScheduler.start(context)
         ServerService.start(context)
     }
-    // Android 13+ asks before showing the server's notification. Start either way.
+    // Android 13+ asks before showing the server's notification. Whatever was tapped goes ahead
+    // either way, so it is kept here while the permission dialog is open.
+    var pendingStart by remember { mutableStateOf<(() -> Unit)?>(null) }
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { start() }
+    ) {
+        pendingStart?.invoke()
+        pendingStart = null
+    }
 
-    fun onStartClick() {
+    fun withNotificationPermission(action: () -> Unit) {
         val needsPermission =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 ContextCompat.checkSelfPermission(
@@ -101,9 +106,10 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                     Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
         if (needsPermission) {
+            pendingStart = action
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            start()
+            action()
         }
     }
 
@@ -125,12 +131,21 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                             onDismissRequest = { menuOpen = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Start") },
+                                text = { Text("Start Web Server and Scraper") },
                                 leadingIcon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
                                 enabled = !(jobRunning && serverRunning),
                                 onClick = {
                                     menuOpen = false
-                                    onStartClick()
+                                    withNotificationPermission { start() }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Start Web Server") },
+                                leadingIcon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
+                                enabled = !serverRunning,
+                                onClick = {
+                                    menuOpen = false
+                                    withNotificationPermission { ServerService.start(context) }
                                 }
                             )
                             DropdownMenuItem(
