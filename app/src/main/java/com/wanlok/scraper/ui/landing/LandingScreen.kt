@@ -5,10 +5,14 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,7 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -87,38 +93,57 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         ActivityResultContracts.RequestPermission()
     ) { start() }
 
+    fun onStartClick() {
+        val needsPermission =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+        if (needsPermission) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            start()
+        }
+    }
+
+    // The actions live in an overflow menu, so more can be added without crowding the top bar.
+    var menuOpen by remember { mutableStateOf(false) }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text("Home") },
                 actions = {
-                    IconButton(
-                        onClick = {
-                            val needsPermission =
-                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                    ContextCompat.checkSelfPermission(
-                                        context,
-                                        Manifest.permission.POST_NOTIFICATIONS
-                                    ) != PackageManager.PERMISSION_GRANTED
-                            if (needsPermission) {
-                                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            } else {
-                                start()
-                            }
-                        },
-                        enabled = !(jobRunning && serverRunning)
-                    ) {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = "Start")
-                    }
-                    IconButton(
-                        onClick = {
-                            TaskScheduler.stop(context)
-                            ServerService.stop(context)
-                        },
-                        enabled = jobRunning || serverRunning
-                    ) {
-                        Icon(Icons.Filled.Stop, contentDescription = "Stop")
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Start") },
+                                leadingIcon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
+                                enabled = !(jobRunning && serverRunning),
+                                onClick = {
+                                    menuOpen = false
+                                    onStartClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Stop") },
+                                leadingIcon = { Icon(Icons.Filled.Stop, contentDescription = null) },
+                                enabled = jobRunning || serverRunning,
+                                onClick = {
+                                    menuOpen = false
+                                    TaskScheduler.stop(context)
+                                    ServerService.stop(context)
+                                }
+                            )
+                        }
                     }
                 }
             )

@@ -12,7 +12,7 @@ com.wanlok.scraper
 ├── MainActivity.kt        entry point: setContent { ScraperTheme { AppNavigation() } }
 ├── ui
 │   ├── navigation/        AppNavigation.kt (NavigationSuiteScaffold), AppDestination.kt (top-level screens)
-│   ├── landing/           LandingScreen.kt (log + Start/Stop icons in the top bar), LogViewer.kt
+│   ├── landing/           LandingScreen.kt (log + Start/Stop in a menu in the top bar), LogViewer.kt
 │   ├── tasks/             TasksScreen.kt (read-only list of the saved tasks)
 │   ├── settings/          SettingsScreen.kt (scrollable list of settings, saved automatically)
 │   ├── icons/             StopIcon.kt (Stop is only in material-icons-extended, so it is drawn here)
