@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -106,8 +107,8 @@ fun LandingScreen(modifier: Modifier = Modifier) {
     // The actions live in an overflow menu, so more can be added without crowding the top bar.
     var menuOpen by remember { mutableStateOf(false) }
 
-    // Today, written the way the user's language does, for example 8 Nov 2026.
-    val dateText = remember { SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date()) }
+    // Today, written the way the user's language does, for example 8 November 2026.
+    val dateText = remember { SimpleDateFormat("d MMMM yyyy", Locale.getDefault()).format(Date()) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -186,6 +187,7 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                 Text(
                     text = dateText,
                     style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Start,
                     modifier = Modifier.weight(1f)
                 )
