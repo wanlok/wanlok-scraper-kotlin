@@ -6,10 +6,17 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +34,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,7 +51,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 private val now = System.currentTimeMillis()
 
@@ -94,6 +105,9 @@ fun LandingScreen(modifier: Modifier = Modifier) {
 
     // The actions live in an overflow menu, so more can be added without crowding the top bar.
     var menuOpen by remember { mutableStateOf(false) }
+
+    // Today, written the way the user's language does, for example 8 Nov 2026.
+    val dateText = remember { SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date()) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -149,12 +163,41 @@ fun LandingScreen(modifier: Modifier = Modifier) {
             )
         }
     ) { innerPadding ->
-        LogViewer(
-            logs = logs,
+        Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-        )
+        ) {
+            // The day whose log is shown. Picking another day comes next.
+            Button(
+                onClick = { },
+                shape = RectangleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                // The same side padding as the log lines, so the text lines up with them.
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                // The same text style as the log viewer, filling the button to align to the left.
+                Text(
+                    text = dateText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
+            }
+            LogViewer(
+                logs = logs,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            )
+        }
     }
 }
 

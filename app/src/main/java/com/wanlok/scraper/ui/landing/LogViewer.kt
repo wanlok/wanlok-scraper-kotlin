@@ -31,7 +31,7 @@ fun LogViewer(logs: List<WLog>, modifier: Modifier = Modifier) {
     LazyColumn(
         state = listState,
         modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 16.dp)
+        contentPadding = PaddingValues(16.dp)
     ) {
         items(logs) { log ->
             Text(
