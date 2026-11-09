@@ -36,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -135,17 +136,32 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    if (pickerOpen) {
+    // The picker decides which days are enabled when it draws them, so it must not open
+    // before the list of days is ready. It is read again each time the picker is opened.
+    val loadedDays by produceState<Set<String>?>(initialValue = null, pickerOpen) {
+        value = null
+        if (pickerOpen) {
+            value = if (isPreview) emptySet() else withContext(Dispatchers.IO) {
+                LogRepository.daysWithLogs(context)
+            }
+        }
+    }
+    val daysWithLogs = loadedDays
+
+    if (pickerOpen && daysWithLogs != null) {
+        // Only days with logs can be picked, plus today so the live log is always reachable.
         val pickerState = rememberDatePickerState(
             initialSelectedDateMillis = pickedMillis,
-            // Days that haven't happened yet have no logs.
             selectableDates = object : SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long) =
-                    utcFormat("yyyyMMdd", utcTimeMillis) <= todayDay
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val day = utcFormat("yyyyMMdd", utcTimeMillis)
+                    return day == todayDay || day in daysWithLogs
+                }
             }
         )
         DatePickerDialog(
             onDismissRequest = { pickerOpen = false },
+            shape = RectangleShape,
             confirmButton = {
                 TextButton(
                     enabled = pickerState.selectedDateMillis != null,
@@ -159,7 +175,13 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                 TextButton(onClick = { pickerOpen = false }) { Text("Cancel") }
             }
         ) {
-            DatePicker(state = pickerState)
+            // Only the calendar: no "Select date" title, no headline and no keyboard-input toggle.
+            DatePicker(
+                state = pickerState,
+                title = null,
+                headline = null,
+                showModeToggle = false
+            )
         }
     }
 
@@ -262,6 +284,7 @@ private fun utcFormat(pattern: String, millis: Long, locale: Locale = Locale.US)
         .format(Date(millis))
 
 /** A small heading for a group of items in the menu. */
+
 @Composable
 private fun MenuSubtitle(text: String) {
     Text(

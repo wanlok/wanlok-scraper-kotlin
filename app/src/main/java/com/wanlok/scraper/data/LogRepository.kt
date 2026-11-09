@@ -50,6 +50,12 @@ object LogRepository {
         return if (file.exists()) file.readLines().mapNotNull(::parse) else emptyList()
     }
 
+    /** The days that have a log file, each as yyyyMMdd. */
+    fun daysWithLogs(context: Context): Set<String> {
+        val dir = File(context.applicationContext.filesDir, DIR_NAME)
+        return dir.listFiles().orEmpty().map { it.nameWithoutExtension }.toSet()
+    }
+
     private fun switchTo(newDay: String) {
         day = newDay
         val file = fileFor(newDay)
