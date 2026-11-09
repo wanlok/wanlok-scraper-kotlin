@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,7 +26,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -55,6 +61,7 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 private val now = System.currentTimeMillis()
 
@@ -107,8 +114,54 @@ fun LandingScreen(modifier: Modifier = Modifier) {
     // The actions live in an overflow menu, so more can be added without crowding the top bar.
     var menuOpen by remember { mutableStateOf(false) }
 
-    // Today, written the way the user's language does, for example 8 November 2026.
-    val dateText = remember { SimpleDateFormat("d MMMM yyyy", Locale.getDefault()).format(Date()) }
+    // The day being viewed. The date picker gives midnight UTC of the picked day; null means today.
+    var pickerOpen by remember { mutableStateOf(false) }
+    var pickedMillis by rememberSaveable { mutableStateOf<Long?>(null) }
+    val todayDay = remember { SimpleDateFormat("yyyyMMdd", Locale.US).format(Date()) }
+    val pickedDay = pickedMillis?.let { utcFormat("yyyyMMdd", it) }
+    val viewingToday = pickedDay == null || pickedDay == todayDay
+
+    // Written the way the user's language does, for example 8 November 2026.
+    val dateText = pickedMillis?.let { utcFormat("d MMMM yyyy", it, Locale.getDefault()) }
+        ?: remember { SimpleDateFormat("d MMMM yyyy", Locale.getDefault()).format(Date()) }
+
+    // Today's logs are live; a past day is read once from its file.
+    var pastLogs by remember { mutableStateOf<List<WLog>>(emptyList()) }
+    LaunchedEffect(pickedDay) {
+        pastLogs = if (viewingToday || pickedDay == null) {
+            emptyList()
+        } else {
+            withContext(Dispatchers.IO) { LogRepository.read(context, pickedDay) }
+        }
+    }
+
+    if (pickerOpen) {
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = pickedMillis,
+            // Days that haven't happened yet have no logs.
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) =
+                    utcFormat("yyyyMMdd", utcTimeMillis) <= todayDay
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { pickerOpen = false },
+            confirmButton = {
+                TextButton(
+                    enabled = pickerState.selectedDateMillis != null,
+                    onClick = {
+                        pickedMillis = pickerState.selectedDateMillis
+                        pickerOpen = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pickerOpen = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -169,9 +222,9 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            // The day whose log is shown. Picking another day comes next.
+            // The day whose log is shown. Tap it to pick another day.
             Button(
-                onClick = { },
+                onClick = { pickerOpen = true },
                 shape = RectangleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -194,7 +247,7 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
             }
             LogViewer(
-                logs = logs,
+                logs = if (viewingToday) logs else pastLogs,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -202,6 +255,11 @@ fun LandingScreen(modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** Formats a date picker value, which is midnight UTC, without shifting it to another day. */
+private fun utcFormat(pattern: String, millis: Long, locale: Locale = Locale.US): String =
+    SimpleDateFormat(pattern, locale).apply { timeZone = TimeZone.getTimeZone("UTC") }
+        .format(Date(millis))
 
 /** A small heading for a group of items in the menu. */
 @Composable

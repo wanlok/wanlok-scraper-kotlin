@@ -44,6 +44,12 @@ object LogRepository {
         fileFor(today).appendText(toJson(log) + "\n")
     }
 
+    /** The logs saved for a past day, given as yyyyMMdd. Empty if nothing was logged that day. */
+    fun read(context: Context, day: String): List<WLog> {
+        val file = File(File(context.applicationContext.filesDir, DIR_NAME), "$day.txt")
+        return if (file.exists()) file.readLines().mapNotNull(::parse) else emptyList()
+    }
+
     private fun switchTo(newDay: String) {
         day = newDay
         val file = fileFor(newDay)
