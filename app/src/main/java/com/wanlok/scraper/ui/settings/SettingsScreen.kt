@@ -44,7 +44,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
+fun SettingsScreen(onOpenServerIpAddresses: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     // DataStore isn't available in the @Preview renderer, so skip it there.
     val isPreview = LocalInspectionMode.current
@@ -77,7 +77,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 .fillMaxSize()
         ) {
             item {
-                ButtonRow(text = "Server IP Addresses", onClick = { })
+                ButtonRow(text = "Server IP Addresses", onClick = onOpenServerIpAddresses)
                 HorizontalDivider()
             }
             item {
@@ -152,6 +152,6 @@ private fun TextFieldRow(
 @Composable
 fun SettingsScreenPreview() {
     ScraperTheme {
-        SettingsScreen()
+        SettingsScreen(onOpenServerIpAddresses = { })
     }
 }
