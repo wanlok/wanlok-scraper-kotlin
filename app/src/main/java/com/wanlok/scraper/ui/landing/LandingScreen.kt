@@ -7,16 +7,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -42,8 +38,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,6 +47,7 @@ import com.wanlok.scraper.data.LogRepository
 import com.wanlok.scraper.data.LogStatus
 import com.wanlok.scraper.data.WLog
 import com.wanlok.scraper.server.ServerService
+import com.wanlok.scraper.ui.components.RowButton
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import com.wanlok.scraper.work.TaskScheduler
 import kotlinx.coroutines.Dispatchers
@@ -245,29 +240,11 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                 .fillMaxSize()
         ) {
             // The day whose log is shown. Tap it to pick another day.
-            Button(
+            RowButton(
+                text = dateText,
                 onClick = { pickerOpen = true },
-                shape = RectangleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                // The same side padding as the log lines, so the text lines up with them.
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-            ) {
-                // The same text style as the log viewer, filling the button to align to the left.
-                Text(
-                    text = dateText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
-            }
+                icon = Icons.Filled.KeyboardArrowDown
+            )
             LogViewer(
                 logs = if (viewingToday) logs else pastLogs,
                 modifier = Modifier
