@@ -1,0 +1,89 @@
+package com.wanlok.scraper.ui.landing
+
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.tooling.preview.Preview
+import com.wanlok.scraper.data.LogRepository
+import com.wanlok.scraper.ui.components.WListItem
+import com.wanlok.scraper.ui.theme.ScraperTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+private val sampleDays = listOf("20261110", "20261109", "20261105")
+
+/**
+ * The days that have logs, newest first. Picking one shows that day's log on Home. The day
+ * Home is showing now, [selectedDay], is highlighted.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateScreen(
+    selectedDay: String,
+    onBack: () -> Unit,
+    onPick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    // The log files aren't available in the @Preview renderer, so show a sample there.
+    val isPreview = LocalInspectionMode.current
+    // Today is always listed, so the live log can be reached before anything is logged.
+    val days by produceState<List<String>?>(initialValue = null) {
+        value = if (isPreview) sampleDays else withContext(Dispatchers.IO) {
+            (LogRepository.daysWithLogs(context) + LogDays.today()).sortedDescending()
+        }
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Dates") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
+            items(days.orEmpty()) { day ->
+                WListItem(
+                    text = LogDays.title(day),
+                    onClick = { onPick(day) },
+                    selected = day == selectedDay
+                )
+                HorizontalDivider()
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DateScreenPreview() {
+    ScraperTheme {
+        DateScreen(selectedDay = "20261109", onBack = { }, onPick = { })
+    }
+}

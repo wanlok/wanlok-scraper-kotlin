@@ -8,7 +8,9 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -17,10 +19,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.wanlok.scraper.ui.landing.DateScreen
 import com.wanlok.scraper.ui.landing.LandingScreen
+import com.wanlok.scraper.ui.landing.LogDays
 import com.wanlok.scraper.ui.settings.ServerIpAddressesScreen
 import com.wanlok.scraper.ui.settings.SettingsScreen
 import com.wanlok.scraper.ui.tasks.TasksScreen
+
+/** The key under which the dates screen hands the picked day to Home. */
+private const val PICKED_DAY = "picked_day"
 
 @Composable
 fun AppNavigation() {
@@ -61,7 +68,38 @@ fun AppNavigation() {
     ) {
         // Each screen has its own Scaffold, so it can have its own top bar.
         NavHost(navController = navController, startDestination = Routes.HOME) {
-            composable(Routes.HOME) { LandingScreen() }
+            navigation(route = Routes.HOME, startDestination = Routes.HOME_LOG) {
+                composable(Routes.HOME_LOG) { entry ->
+                    // The dates screen leaves the picked day here before it goes back.
+                    val day by entry.savedStateHandle
+                        .getStateFlow<String?>(PICKED_DAY, null)
+                        .collectAsState()
+                    LandingScreen(
+                        day = day,
+                        onOpenDates = { navController.navigate(Routes.DATES) }
+                    )
+                }
+                composable(Routes.DATES) {
+                    // The day Home is showing, which Home keeps; none picked yet means today.
+                    // Read once: while this screen slides away, the entry before it is gone.
+                    val selectedDay = remember {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.get<String>(PICKED_DAY)
+                            ?: LogDays.today()
+                    }
+                    DateScreen(
+                        selectedDay = selectedDay,
+                        onBack = { navController.popBackStack() },
+                        onPick = { day ->
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set(PICKED_DAY, day)
+                            navController.popBackStack()
+                        }
+                    )
+                }
+            }
             composable(Routes.TASKS) { TasksScreen() }
             navigation(route = Routes.SETTINGS, startDestination = Routes.SETTINGS_LIST) {
                 composable(Routes.SETTINGS_LIST) {
