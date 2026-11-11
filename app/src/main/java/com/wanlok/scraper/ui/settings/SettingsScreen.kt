@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -38,6 +35,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import com.wanlok.scraper.data.SettingsRepository
+import com.wanlok.scraper.ui.components.WListItem
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -77,7 +75,7 @@ fun SettingsScreen(onOpenServerIpAddresses: () -> Unit, modifier: Modifier = Mod
                 .fillMaxSize()
         ) {
             item {
-                ButtonRow(text = "Server IP Addresses", onClick = onOpenServerIpAddresses)
+                WListItem(text = "Server IP Addresses", onClick = onOpenServerIpAddresses)
                 HorizontalDivider()
             }
             item {
@@ -90,19 +88,6 @@ fun SettingsScreen(onOpenServerIpAddresses: () -> Unit, modifier: Modifier = Mod
             }
         }
     }
-}
-
-/** A row that opens something when tapped, shown with an arrow on the right. */
-@Composable
-private fun ButtonRow(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    ListItem(
-        headlineContent = { Text(text) },
-        trailingContent = {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-        },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = modifier.clickable(onClick = onClick)
-    )
 }
 
 /**

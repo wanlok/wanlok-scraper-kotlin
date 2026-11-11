@@ -47,7 +47,7 @@ import com.wanlok.scraper.data.LogRepository
 import com.wanlok.scraper.data.LogStatus
 import com.wanlok.scraper.data.WLog
 import com.wanlok.scraper.server.ServerService
-import com.wanlok.scraper.ui.components.RowButton
+import com.wanlok.scraper.ui.components.WListItem
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import com.wanlok.scraper.work.TaskScheduler
 import kotlinx.coroutines.Dispatchers
@@ -240,7 +240,7 @@ fun LandingScreen(modifier: Modifier = Modifier) {
                 .fillMaxSize()
         ) {
             // The day whose log is shown. Tap it to pick another day.
-            RowButton(
+            WListItem(
                 text = dateText,
                 onClick = { pickerOpen = true },
                 icon = Icons.Filled.KeyboardArrowDown
