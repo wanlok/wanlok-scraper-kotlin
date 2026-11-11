@@ -50,6 +50,14 @@ object LogRepository {
         return if (file.exists()) file.readLines().mapNotNull(::parse) else emptyList()
     }
 
+    /** Deletes the log file of a day, given as yyyyMMdd. Today's list is emptied too. */
+    @Synchronized
+    fun delete(context: Context, day: String) {
+        load(context)
+        fileFor(day).delete()
+        if (day == this.day) _logs.value = emptyList()
+    }
+
     /** The days that have a log file, each as yyyyMMdd. */
     fun daysWithLogs(context: Context): Set<String> {
         val dir = File(context.applicationContext.filesDir, DIR_NAME)

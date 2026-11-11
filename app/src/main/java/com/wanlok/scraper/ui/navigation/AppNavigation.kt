@@ -10,7 +10,9 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -82,14 +84,25 @@ fun AppNavigation() {
                 composable(Routes.DATES) {
                     // The day Home is showing, which Home keeps; none picked yet means today.
                     // Read once: while this screen slides away, the entry before it is gone.
-                    val selectedDay = remember {
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.get<String>(PICKED_DAY)
-                            ?: LogDays.today()
+                    var selectedDay by remember {
+                        mutableStateOf(
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.get<String>(PICKED_DAY)
+                                ?: LogDays.today()
+                        )
                     }
                     DateScreen(
                         selectedDay = selectedDay,
+                        onDeleted = { day ->
+                            // The day Home was showing is gone, so Home goes back to today.
+                            if (day == selectedDay) {
+                                selectedDay = LogDays.today()
+                                navController.previousBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set<String?>(PICKED_DAY, null)
+                            }
+                        },
                         onBack = { navController.popBackStack() },
                         onPick = { day ->
                             navController.previousBackStackEntry
