@@ -14,9 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.util.Date
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Runs the saved tasks: find the pages of each task (its page selector, if it has one), load each
@@ -27,42 +26,58 @@ object TaskRunner {
     // Keeps the load on the site low when a task has several pages.
     private const val PAGE_PAUSE_MS = 1_000L
 
-    // Only one run at a time, so two runs never load pages or save snapshots together.
-    private val lock = Mutex()
+    // The ids of the tasks being run now. A task is never run twice at once, so two runs never save
+    // snapshots of the same task together, but different tasks can run in parallel.
+    private val running = ConcurrentHashMap.newKeySet<String>()
 
-    // For runs that are started without waiting for them, see runAllInBackground.
+    // For runs that are started without waiting for them, see runOneInBackground.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
-    /** True while a run is in progress. */
-    val isRunning: Boolean get() = lock.isLocked
 
     /**
      * Runs every enabled task, one at a time. A task that is not enabled is logged and skipped, with
-     * no snapshot. A task that fails doesn't stop the others. A run that starts while another is in
-     * progress waits for it to finish.
+     * no snapshot, and so is a task that is already being run by [runOneInBackground]. A task that
+     * fails doesn't stop the others.
      */
-    suspend fun runAll(context: Context) = lock.withLock {
+    suspend fun runAll(context: Context) {
         TaskRepository.load(context)
         TaskRepository.tasks.value.forEach { task ->
-            if (task.enabled) {
-                run(context, task)
+            if (running.add(task.id)) {
+                runClaimed(context, task)
             } else {
-                LogRepository.append(context, LogStatus.TASK_SKIPPED, task.name)
+                LogRepository.append(context, LogStatus.TASK_SKIPPED, "${task.name}: already running")
             }
         }
     }
 
-    /** Starts [runAll] and returns at once. The outcome is in the log. */
-    fun runAllInBackground(context: Context) {
+    /**
+     * Starts the task and returns at once. The outcome is in the log. Returns false, without
+     * starting, if the task is already being run.
+     */
+    fun runOneInBackground(context: Context, task: Task): Boolean {
+        if (!running.add(task.id)) return false
         scope.launch {
             try {
-                runAll(context)
+                runClaimed(context, task)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 // Nobody is waiting for this run, so an unexpected error is logged, not thrown.
                 LogRepository.append(context, LogStatus.TASK_FAILED, "Run failed: ${e.message}")
             }
+        }
+        return true
+    }
+
+    /** Runs a task whose id is in [running], or logs it as skipped if it is not enabled. Then lets go of it. */
+    private suspend fun runClaimed(context: Context, task: Task) {
+        try {
+            if (task.enabled) {
+                run(context, task)
+            } else {
+                LogRepository.append(context, LogStatus.TASK_SKIPPED, task.name)
+            }
+        } finally {
+            running.remove(task.id)
         }
     }
 

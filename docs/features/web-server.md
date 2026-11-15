@@ -6,7 +6,7 @@
 Let a desktop browser on the same network add, list and delete scraping tasks. The tasks are stored on the phone only (`TaskRepository`).
 
 ## Behaviour
-- **Start Web Server** (the Start item under the Web Server heading of the menu on Home) starts `ServerService`, a foreground service that runs a Ktor (CIO) server on port **8080**, listening on all interfaces. **Stop Web Server** stops it. This is separate from **Start Scraper** and **Stop Scraper**, which control the periodic job (see `background-job.md`), so tasks can be edited and `POST /api/run` used without scheduling.
+- **Start Web Server** (the Start item under the Web Server heading of the menu on Home) starts `ServerService`, a foreground service that runs a Ktor (CIO) server on port **8080**, listening on all interfaces. **Stop Web Server** stops it. This is separate from **Start Scraper** and **Stop Scraper**, which control the periodic job (see `background-job.md`), so tasks can be edited and `POST /api/run/{id}` used without scheduling.
 - The service shows a notification with the address, for example `http://192.168.1.23:8080`. Tapping it opens the app.
 - The address is also logged on Home: `STARTED  Web server http://192.168.1.23:8080`.
 - `GET /` returns `app/src/main/assets/index.html`. Open the address in a desktop browser on the same Wi-Fi to check it works.
@@ -16,7 +16,7 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
   - `POST /api/tasks` with `{ "name", "url", "page_selector", "data_selector", "enabled" }` adds a task and returns it (201). `page_selector` and `enabled` are optional. It returns 400 with `{ "error" }` if `name` or `data_selector` is blank, `url` is not an http(s) address, `enabled` is not `true` or `false`, or `page_selector` or `data_selector` is not valid (see below).
   - `PUT /api/tasks/{id}` with the same body replaces that task, keeping its id, and returns it (200). A `page_selector` that is left out is removed from the task, and an `enabled` that is left out becomes `true`. It has the same 400 errors, or returns 404 if there is no such task.
   - `DELETE /api/tasks/{id}` removes a task and its snapshots (204), or returns 404 if there is no such task.
-- **Enabled** (optional boolean, default `true`). A task with `"enabled": false` is skipped by every run, the periodic job and `POST /api/run`. Skipping is not a failure: Home logs `TASK_SKIPPED` with the task name and no snapshot is saved. A run where every task is disabled just logs the skips and finishes. A task as the API returns it:
+- **Enabled** (optional boolean, default `true`). A task with `"enabled": false` is skipped by every run, the periodic job and `POST /api/run/{id}`. Skipping is not a failure: Home logs `TASK_SKIPPED` with the task name and no snapshot is saved. A run where every task is disabled just logs the skips and finishes. A task as the API returns it:
   ```json
   { "id": "…", "name": "CAP graphics cards", "url": "https://www.cap.com.hk/tc/products/category/graphics-card",
     "page_selector": { ".pagination a": "page" },
@@ -34,7 +34,7 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
     "data": [ { "name": "ASUS ROG ASTRAL", "price": "HK$ 12,999" }, { "name": "INNO 3D RTX5070", "price": null } ]
     ```
   - It returns 400 if the object has more or fewer than one key, if the container's value isn't an object or has no fields (use the string form), or if a field name or selector is blank.
-- `POST /api/run` starts all enabled tasks now, the same code as the periodic job, and returns 202 at once without waiting for them to finish, since a run can take minutes. Progress and results appear in the Home log, and the data in the snapshots. It returns 409 `{ "error" }` if a run is already in progress. The run continues even if the server is stopped.
+- `POST /api/run/{id}` starts that one task now, the same code as the periodic job, and returns 202 at once without waiting for it to finish, since a run can take minutes. It returns 404 `{ "error" }` for an unknown id. Progress and results appear in the Home log, and the data in the snapshots. Different tasks can run at the same time. It returns 409 `{ "error" }` if that task is already running. The run continues even if the server is stopped.
 - On Android 13+, Start Web Server first asks for the notification permission. The server starts whether or not it is granted.
 
 ## Pagination

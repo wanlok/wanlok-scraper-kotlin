@@ -32,15 +32,18 @@ private const val MAX_SNAPSHOTS = 1000
 
 /** The task API used by the desktop page. Everything is JSON. */
 fun Route.taskRoutes(context: Context) {
-    // Runs every task now, the same way the periodic job does. Handy for testing.
+    // Runs one task now, the same way the periodic job does. Handy for testing. Different tasks can
+    // run at the same time, but not the same task twice.
     // The run takes as long as the pages take, so this returns at once. The outcome is in the Home log.
-    post("/api/run") {
-        if (TaskRunner.isRunning) {
-            call.respondError("A run is already in progress", HttpStatusCode.Conflict)
-        } else {
-
-            TaskRunner.runAllInBackground(context)
+    post("/api/run/{id}") {
+        TaskRepository.load(context)
+        val id = call.parameters["id"].orEmpty()
+        val task = TaskRepository.tasks.value.firstOrNull { it.id == id }
+            ?: return@post call.respondError("No task with that id", HttpStatusCode.NotFound)
+        if (TaskRunner.runOneInBackground(context, task)) {
             call.respond(HttpStatusCode.Accepted)
+        } else {
+            call.respondError("A run is already in progress for this task", HttpStatusCode.Conflict)
         }
     }
 
