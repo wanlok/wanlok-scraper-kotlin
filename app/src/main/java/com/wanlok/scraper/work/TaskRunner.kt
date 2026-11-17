@@ -42,7 +42,7 @@ object TaskRunner {
         TaskRepository.load(context)
         TaskRepository.tasks.value.forEach { task ->
             if (running.add(task.id)) {
-                runClaimed(context, task)
+                runClaimed(context, task, enabled = task.enabled)
             } else {
                 LogRepository.append(context, LogStatus.TASK_SKIPPED, "${task.name}: already running")
             }
@@ -57,7 +57,8 @@ object TaskRunner {
         if (!running.add(task.id)) return false
         scope.launch {
             try {
-                runClaimed(context, task)
+                // A run asked for by hand ignores the task's enabled flag.
+                runClaimed(context, task, enabled = true)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -68,10 +69,10 @@ object TaskRunner {
         return true
     }
 
-    /** Runs a task whose id is in [running], or logs it as skipped if it is not enabled. Then lets go of it. */
-    private suspend fun runClaimed(context: Context, task: Task) {
+    /** Runs a task whose id is in [running], or logs it as skipped if [enabled] is false. Then lets go of it. */
+    private suspend fun runClaimed(context: Context, task: Task, enabled: Boolean) {
         try {
-            if (task.enabled) {
+            if (enabled) {
                 run(context, task)
             } else {
                 LogRepository.append(context, LogStatus.TASK_SKIPPED, task.name)
