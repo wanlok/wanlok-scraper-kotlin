@@ -139,5 +139,11 @@ class ServerService : Service() {
         fun stop(context: Context) {
             context.stopService(Intent(context, ServerService::class.java))
         }
+
+        /** Stops the server and starts it again, so it picks up a changed port. */
+        fun restart(context: Context) {
+            stop(context)
+            start(context)
+        }
     }
 }

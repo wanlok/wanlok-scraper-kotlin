@@ -23,7 +23,7 @@ com.wanlok.scraper
 │   ├── PageUrls.kt        works out the URL of every page of a list from its pagination links (no WebView, unit tested)
 │   └── TaskRunner.kt      scrapes each task's pages, saves one snapshot, logs the outcome
 ├── server
-│   ├── ServerService.kt   foreground service that runs the Ktor web server (port 8080)
+│   ├── ServerService.kt   foreground service that runs the Ktor web server (port from Settings, 8080 by default)
 │   ├── TaskRoutes.kt      the /api/tasks endpoints (list, add, edit, delete)
 │   └── NetworkAddress.kt  the phone's local IPv4 address
 └── data
@@ -49,7 +49,7 @@ com.wanlok.scraper
 
 ```
 Start Scraper tapped    -> TaskScheduler.start() -> WorkManager (unique periodic work)
-Start Web Server tapped -> ServerService.start() -> foreground service -> Ktor server on port 8080
+Start Web Server tapped -> ServerService.start() -> foreground service -> Ktor server on the saved port (8080 by default)
                                               |
                                   every ~15 min: TaskWorker.doWork() -> TaskRunner.runAll()
 
@@ -60,8 +60,8 @@ LogRepository.append(...) -> logs/yyyyMMdd.txt + StateFlow
 TasksScreen collects TaskRepository.tasks (tasks.json)
 ```
 
-- Button state is not held by the screen. `TaskScheduler.isRunning()` reads the job's status from WorkManager, and `ServerService.running` (kept in memory) says whether the web server is serving. The scraper and the web server are started and stopped separately from the menu on Home: each Start item is enabled only when that part isn't running, and each Stop item only when it is. Nothing restarts the server by itself.
-- Settings are saved automatically (no Save button) when the user presses Done or leaves a field. The saved name is not used by anything right now; it was sent in the removed dummy POST.
+- Button state is not held by the screen. `TaskScheduler.isRunning()` reads the job's status from WorkManager, and `ServerService.running` (kept in memory) says whether the web server is serving. The scraper and the web server are started and stopped separately from the menu on Home: each Start item is enabled only when that part isn't running, and each Stop item only when it is. The only thing that restarts the server is a changed Server Port in Settings, and only while it is running.
+- Settings are saved automatically (no Save button) when the user presses Done or leaves a field. The saved name is not used by anything right now; it was sent in the removed dummy POST. The saved port is read by `ServerService` each time it starts.
 - Tasks are not added in the Android UI. Start Web Server launches a web server on the phone for a desktop browser (see `features/web-server.md`); adding tasks through it comes next.
 - There is no ViewModel yet. Add one per screen when a screen gains real logic.
 

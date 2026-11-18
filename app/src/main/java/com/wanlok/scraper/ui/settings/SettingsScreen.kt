@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import com.wanlok.scraper.data.SettingsRepository
+import com.wanlok.scraper.server.ServerService
 import com.wanlok.scraper.ui.components.WListItem
 import com.wanlok.scraper.ui.theme.ScraperTheme
 import kotlinx.coroutines.flow.first
@@ -57,12 +58,16 @@ fun SettingsScreen(onOpenServerIpAddresses: () -> Unit, modifier: Modifier = Mod
     }
 
     // Settings save automatically: when the user presses Done or leaves the field.
-    // A port that is not valid is dropped, and the stored one is shown again.
+    // A port that is not valid is dropped, and the stored one is shown again. A running server
+    // is restarted when the port changed, so it listens on the new one.
     fun savePort() {
         if (isPreview) return
         scope.launch {
+            val before = SettingsRepository.port(context).first()
             SettingsRepository.setPort(context, port)
-            port = SettingsRepository.port(context).first().toString()
+            val after = SettingsRepository.port(context).first()
+            port = after.toString()
+            if (after != before && ServerService.running.value) ServerService.restart(context)
         }
     }
 

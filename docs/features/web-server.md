@@ -6,7 +6,9 @@
 Let a desktop browser on the same network add, list and delete scraping tasks. The tasks are stored on the phone only (`TaskRepository`).
 
 ## Behaviour
-- **Start Web Server** (the Start item under the Web Server heading of the menu on Home) starts `ServerService`, a foreground service that runs a Ktor (CIO) server on port **8080**, listening on all interfaces. **Stop Web Server** stops it. This is separate from **Start Scraper** and **Stop Scraper**, which control the periodic job (see `background-job.md`), so tasks can be edited and `POST /api/run/{id}` used without scheduling.
+- **Start Web Server** (the Start item under the Web Server heading of the menu on Home) starts `ServerService`, a foreground service that runs a Ktor (CIO) server on the port set in Settings (**8080** by default), listening on all interfaces. **Stop Web Server** stops it. This is separate from **Start Scraper** and **Stop Scraper**, which control the periodic job (see `background-job.md`), so tasks can be edited and `POST /api/run/{id}` used without scheduling.
+- **Server Port** (Settings, above Name) sets the port, from 1024 to 65535 (an app cannot listen below 1024). It is read each time the server starts. Changing it and leaving the field (or pressing Done) restarts a running server on the new port: Home logs `STOPPED  Web server` then `STARTED  Web server` with the new address. If the server is not running, nothing starts and the new port is used the next time. A value that is not valid is dropped and the saved port is shown again. A browser tab open on the old address stops working.
+- **Server IP Addresses** (Settings, the first row) opens a page that lists the phone's IPv4 addresses (every interface that is up, with its name), to build the address to open on the desktop. They are shown without `http://` or a port.
 - The service shows a notification with the address, for example `http://192.168.1.23:8080`. Tapping it opens the app.
 - The address is also logged on Home: `STARTED  Web server http://192.168.1.23:8080`.
 - `GET /` returns `app/src/main/assets/index.html`. Open the address in a desktop browser on the same Wi-Fi to check it works.
@@ -16,33 +18,18 @@ Let a desktop browser on the same network add, list and delete scraping tasks. T
   - `POST /api/tasks` with `{ "name", "url", "page_selector", "data_selector", "enabled" }` adds a task and returns it (201). `page_selector` and `enabled` are optional. It returns 400 with `{ "error" }` if `name` or `data_selector` is blank, `url` is not an http(s) address, `enabled` is not `true` or `false`, or `page_selector` or `data_selector` is not valid (see below).
   - `PUT /api/tasks/{id}` with the same body replaces that task, keeping its id, and returns it (200). A `page_selector` that is left out is removed from the task, and an `enabled` that is left out becomes `true`. It has the same 400 errors, or returns 404 if there is no such task.
   - `DELETE /api/tasks/{id}` removes a task and its snapshots (204), or returns 404 if there is no such task.
-- **Enabled** (optional boolean, default `true`). A task with `"enabled": false` is skipped by every run, the periodic job and `POST /api/run/{id}`. Skipping is not a failure: Home logs `TASK_SKIPPED` with the task name and no snapshot is saved. A run where every task is disabled just logs the skips and finishes. A task as the API returns it:
-  ```json
-  { "id": "…", "name": "CAP graphics cards", "url": "https://www.cap.com.hk/tc/products/category/graphics-card",
-    "page_selector": { ".pagination a": "page" },
-    "data_selector": { "div.product-card": { "name": ".card-title", "price": ".price-current" } },
-    "enabled": true }
-  ```
-- **Page selector** (optional). `page_selector` is an object of one or more pairs, a CSS selector for the pagination links and the name of the page query parameter: `"page_selector": { ".pagination a": "page" }`. A run reads the task URL and every other page it finds, in page order, and puts all their data in one snapshot. Without it only the task URL is read. See Pagination below.
+- **Enabled** (optional boolean, default `true`). A task with `"enabled": false` is skipped by the periodic job. `POST /api/run/{id}` ignores the flag and runs the task anyway, since it is a run asked for by hand. Skipping is not a failure: Home logs `TASK_SKIPPED` with the task name and no snapshot is saved. A run where every task is disabled just logs the skips and finishes.
+- **Page selector** (optional). `page_selector` is an object of one or more pairs, a CSS selector for the pagination links and the name of the page query parameter. A run reads the task URL and every other page it finds, in page order, and puts all their data in one snapshot. Without it only the task URL is read. See Pagination below.
 - **Data selector.** `data_selector` is either a string or an object, applied to every page:
-  - A string is a CSS selector. Each matching element gives one text, so `data` is a list of strings: `"data_selector": "p.name"` gives `"data": ["First", "Second"]`.
+  - A string is a CSS selector. Each matching element gives one text, so `data` is a list of strings.
   - An object has exactly one key, the container selector, whose value maps field names to CSS selectors searched inside each container. Each container gives one object, so `data` is a list of objects. A field that isn't found inside a container is `null`.
-    ```json
-    "data_selector": { "div.card": { "name": "h6.card-title", "price": ".price" } }
-    ```
-    ```json
-    "data": [ { "name": "ASUS ROG ASTRAL", "price": "HK$ 12,999" }, { "name": "INNO 3D RTX5070", "price": null } ]
-    ```
   - It returns 400 if the object has more or fewer than one key, if the container's value isn't an object or has no fields (use the string form), or if a field name or selector is blank.
-- `POST /api/run/{id}` starts that one task now, the same code as the periodic job, and returns 202 at once without waiting for it to finish, since a run can take minutes. It returns 404 `{ "error" }` for an unknown id. Progress and results appear in the Home log, and the data in the snapshots. Different tasks can run at the same time. It returns 409 `{ "error" }` if that task is already running. The run continues even if the server is stopped.
+- `POST /api/run/{id}` starts that one task now, the same code as the periodic job but even if the task is not enabled, and returns 202 at once without waiting for it to finish, since a run can take minutes. It returns 404 `{ "error" }` for an unknown id. Progress and results appear in the Home log, and the data in the snapshots. Different tasks can run at the same time. It returns 409 `{ "error" }` if that task is already running. The run continues even if the server is stopped.
 - On Android 13+, Start Web Server first asks for the notification permission. The server starts whether or not it is granted.
 
 ## Pagination
 For a list that is spread over several pages, a task has a `page_selector`. The task URL is scraped as page 1, and the other pages are worked out from the pagination links on it. The page list function is `PageUrls` / `PageScraper.pageUrls`, and `POST /api/pages` tests it.
 
-```json
-"page_selector": { ".pagination a": "page" }
-```
 - The value is an object with one or more pairs. The key is a CSS selector for the pagination links, and the value is the name of the query parameter that holds the page number (`page`, `p`, …). A plain string is not valid (400), since it can't say which parameter to use.
 - For each pair, the links its selector matches are filtered to those with exactly that parameter (`?page=N`, `&page=N`), with N of 1 or more. Other links (`#`, product links, `page=0`) are ignored. The largest N is the last page, and the pages 2 to N are the link with only the page value changed, so the other parameters are kept.
 - With several pairs, the lists are joined in the order written and duplicates are removed. A pair that finds no link with its parameter fails the whole call (`no links with page parameter "p"`).
