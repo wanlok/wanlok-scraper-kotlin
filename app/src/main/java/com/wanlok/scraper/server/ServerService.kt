@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import com.wanlok.scraper.MainActivity
 import com.wanlok.scraper.data.LogRepository
 import com.wanlok.scraper.data.LogStatus
+import com.wanlok.scraper.data.SettingsRepository
 import io.ktor.http.ContentType
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
@@ -28,6 +29,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -57,11 +59,13 @@ class ServerService : Service() {
         return START_STICKY
     }
 
-    private fun startServer() {
-        val address = "http://${NetworkAddress.localIpv4(this) ?: "localhost"}:$PORT"
+    private suspend fun startServer() {
+        // The port is read each time the server starts, so a new port applies after a restart.
+        val port = SettingsRepository.port(this).first()
+        val address = "http://${NetworkAddress.localIpv4(this) ?: "localhost"}:$port"
         try {
             val page = assets.open("index.html").bufferedReader().use { it.readText() }
-            server = embeddedServer(CIO, port = PORT, host = "0.0.0.0") {
+            server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
                 routing {
                     get("/") { call.respondText(page, ContentType.Text.Html) }
                     taskRoutes(applicationContext)
@@ -117,7 +121,6 @@ class ServerService : Service() {
     }
 
     companion object {
-        private const val PORT = 8080
         private const val CHANNEL_ID = "web_server"
         private const val NOTIFICATION_ID = 1
 

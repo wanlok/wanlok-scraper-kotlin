@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import com.wanlok.scraper.data.SettingsRepository
 import com.wanlok.scraper.ui.components.WListItem
@@ -48,13 +48,24 @@ fun SettingsScreen(onOpenServerIpAddresses: () -> Unit, modifier: Modifier = Mod
     val isPreview = LocalInspectionMode.current
     val scope = rememberCoroutineScope()
 
+    var port by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
+        port = if (isPreview) "8080" else SettingsRepository.port(context).first().toString()
         name = if (isPreview) Build.MODEL else SettingsRepository.name(context).first()
     }
 
     // Settings save automatically: when the user presses Done or leaves the field.
+    // A port that is not valid is dropped, and the stored one is shown again.
+    fun savePort() {
+        if (isPreview) return
+        scope.launch {
+            SettingsRepository.setPort(context, port)
+            port = SettingsRepository.port(context).first().toString()
+        }
+    }
+
     fun saveName() {
         if (isPreview) return
         scope.launch {
@@ -76,7 +87,16 @@ fun SettingsScreen(onOpenServerIpAddresses: () -> Unit, modifier: Modifier = Mod
         ) {
             item {
                 WListItem(text = "Server IP Addresses", onClick = onOpenServerIpAddresses)
-                HorizontalDivider()
+            }
+            item {
+                TextFieldRow(
+                    label = "Server Port",
+                    value = port,
+                    // Digits only, and a port has at most five.
+                    onValueChange = { port = it.filter(Char::isDigit).take(5) },
+                    onSave = ::savePort,
+                    keyboardType = KeyboardType.Number
+                )
             }
             item {
                 TextFieldRow(
@@ -100,7 +120,8 @@ private fun TextFieldRow(
     value: String,
     onValueChange: (String) -> Unit,
     onSave: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Text
 ) {
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
@@ -113,7 +134,7 @@ private fun TextFieldRow(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 modifier = Modifier
                     .fillMaxWidth()
