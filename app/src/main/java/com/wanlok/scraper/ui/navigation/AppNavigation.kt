@@ -1,6 +1,8 @@
 package com.wanlok.scraper.ui.navigation
 
 import android.content.res.Configuration
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
@@ -14,6 +16,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.lifecycle.Lifecycle
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -30,6 +35,16 @@ import com.wanlok.scraper.ui.tasks.TasksScreen
 
 /** The key under which the dates screen hands the picked day to Home. */
 private const val PICKED_DAY = "picked_day"
+
+// A screen that was popped is no longer resumed. Going back from it again would pop the screen
+// below it too, which for a start screen leaves a blank page. So a tap on a screen that is not
+// resumed is ignored. Screens change without an animation (see the NavHost), so a screen is
+// resumed as soon as it is shown and no real tap is lost.
+private fun NavBackStackEntry.isResumed() = lifecycle.currentState == Lifecycle.State.RESUMED
+
+private fun NavController.popOnce(entry: NavBackStackEntry) {
+    if (entry.isResumed()) popBackStack()
+}
 
 @Composable
 fun AppNavigation() {
@@ -69,7 +84,15 @@ fun AppNavigation() {
         }
     ) {
         // Each screen has its own Scaffold, so it can have its own top bar.
-        NavHost(navController = navController, startDestination = Routes.HOME) {
+        NavHost(
+            navController = navController,
+            startDestination = Routes.HOME,
+            // No animation when a screen opens, closes or a tab changes.
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) {
             navigation(route = Routes.HOME, startDestination = Routes.HOME_LOG) {
                 composable(Routes.HOME_LOG) { entry ->
                     // The dates screen leaves the picked day here before it goes back.
@@ -78,10 +101,13 @@ fun AppNavigation() {
                         .collectAsState()
                     LandingScreen(
                         day = day,
-                        onOpenDates = { navController.navigate(Routes.DATES) }
+                        // Single top, so a fast double tap opens the page once.
+                        onOpenDates = {
+                            navController.navigate(Routes.DATES) { launchSingleTop = true }
+                        }
                     )
                 }
-                composable(Routes.DATES) {
+                composable(Routes.DATES) { entry ->
                     // The day Home is showing, which Home keeps; none picked yet means today.
                     // Read once: while this screen slides away, the entry before it is gone.
                     var selectedDay by remember {
@@ -103,12 +129,15 @@ fun AppNavigation() {
                                     ?.set<String?>(PICKED_DAY, null)
                             }
                         },
-                        onBack = { navController.popBackStack() },
+                        onBack = { navController.popOnce(entry) },
                         onPick = { day ->
-                            navController.previousBackStackEntry
-                                ?.savedStateHandle
-                                ?.set(PICKED_DAY, day)
-                            navController.popBackStack()
+                            // A second tap while the page slides away must not pick again.
+                            if (entry.isResumed()) {
+                                navController.previousBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set(PICKED_DAY, day)
+                                navController.popBackStack()
+                            }
                         }
                     )
                 }
@@ -118,12 +147,14 @@ fun AppNavigation() {
                 composable(Routes.SETTINGS_LIST) {
                     SettingsScreen(
                         onOpenServerIpAddresses = {
-                            navController.navigate(Routes.SERVER_IP_ADDRESSES)
+                            navController.navigate(Routes.SERVER_IP_ADDRESSES) {
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }
-                composable(Routes.SERVER_IP_ADDRESSES) {
-                    ServerIpAddressesScreen(onBack = { navController.popBackStack() })
+                composable(Routes.SERVER_IP_ADDRESSES) { entry ->
+                    ServerIpAddressesScreen(onBack = { navController.popOnce(entry) })
                 }
             }
         }
