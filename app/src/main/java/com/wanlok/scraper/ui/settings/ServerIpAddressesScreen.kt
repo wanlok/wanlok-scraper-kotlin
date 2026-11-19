@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
@@ -87,7 +88,7 @@ fun ServerIpAddressesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         supportingContent = { Text(item.interfaceName) },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
-                    HorizontalDivider()
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 }
             }
         }

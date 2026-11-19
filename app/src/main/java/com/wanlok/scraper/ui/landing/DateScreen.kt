@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.wanlok.scraper.data.LogRepository
 import com.wanlok.scraper.ui.components.SwipeToDelete
 import com.wanlok.scraper.ui.components.WListItem
@@ -106,7 +107,7 @@ fun DateScreen(
                 } else {
                     row()
                 }
-                HorizontalDivider()
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             }
         }
     }
