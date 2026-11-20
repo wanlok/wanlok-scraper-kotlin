@@ -109,7 +109,8 @@ fun AppNavigation() {
                 }
                 composable(Routes.DATES) { entry ->
                     // The day Home is showing, which Home keeps; none picked yet means today.
-                    // Read once: while this screen slides away, the entry before it is gone.
+                    // Read once and then kept here, since the entry before this one is gone
+                    // while this screen is being closed.
                     var selectedDay by remember {
                         mutableStateOf(
                             navController.previousBackStackEntry
@@ -131,13 +132,12 @@ fun AppNavigation() {
                         },
                         onBack = { navController.popOnce(entry) },
                         onPick = { day ->
-                            // A second tap while the page slides away must not pick again.
-                            if (entry.isResumed()) {
-                                navController.previousBackStackEntry
-                                    ?.savedStateHandle
-                                    ?.set(PICKED_DAY, day)
-                                navController.popBackStack()
-                            }
+                            // Stay on this page: the tick moves, and Home shows the day when
+                            // the user goes back.
+                            selectedDay = day
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set(PICKED_DAY, day)
                         }
                     )
                 }

@@ -11,10 +11,11 @@ SDK: `minSdk` 24, `targetSdk` 36, `compileSdk` 37.
 com.wanlok.scraper
 ├── MainActivity.kt        entry point: setContent { ScraperTheme { AppNavigation() } }
 ├── ui
-│   ├── navigation/        AppNavigation.kt (NavigationSuiteScaffold), AppDestination.kt (top-level screens)
-│   ├── landing/           LandingScreen.kt (log + a top bar menu to start and stop the web server and the scraper), LogViewer.kt
+│   ├── navigation/        AppNavigation.kt (NavigationSuiteScaffold + NavHost), AppDestination.kt (top-level screens), Routes.kt
+│   ├── components/        WListItem.kt (a tappable list row), SwipeToDelete.kt (swipe a row left to reveal Delete)
+│   ├── landing/           LandingScreen.kt (the day row + log, and a top bar menu to start and stop the web server and the scraper), LogViewer.kt, DateScreen.kt (the Dates page), LogDays.kt (day text helpers)
 │   ├── tasks/             TasksScreen.kt (read-only list of the saved tasks)
-│   ├── settings/          SettingsScreen.kt (scrollable list of settings, saved automatically)
+│   ├── settings/          SettingsScreen.kt (list of settings, saved automatically), ServerIpAddressesScreen.kt (the Server IP Addresses page)
 │   └── theme/             Color.kt, Theme.kt, Type.kt
 ├── work
 │   ├── TaskScheduler.kt   starts/stops the periodic job, exposes its running state
@@ -29,7 +30,8 @@ com.wanlok.scraper
 └── data
     ├── WLog.kt                one log: { date, status, content? }
     ├── LogStatus.kt           STARTED, STOPPED, TASK_RUNNING, TASK_PAGES_FOUND, TASK_PAGE_COMPLETED, TASK_COMPLETED, TASK_FAILED or TASK_SKIPPED
-    ├── LogRepository.kt       today's logs shown on screen, saved as JSON lines, one file per day
+    ├── LogRepository.kt       today's logs shown on screen, saved as JSON lines, one file per day; also reads, lists and deletes the files of other days
+    ├── IpAddresses.kt         the phone's IPv4 addresses with their interface names
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
     ├── Task.kt                a scraping task: id, name, url, pageSelector (optional), dataSelector (text extraction only), enabled (false = runs skip it)
     ├── Enabled.kt             reads the enabled field of the API body (left out = true, not a boolean = error)
@@ -43,7 +45,12 @@ com.wanlok.scraper
 
 ## Navigation
 
-`NavigationSuiteScaffold` shows the top-level screens (Home, Tasks, Settings) as a bottom bar in portrait and a navigation rail on wider windows such as landscape. The selected screen is held in `rememberSaveable` state, so it survives rotation. Navigation Compose is not used yet; add it when a screen needs drill-down destinations or a back stack.
+`NavigationSuiteScaffold` shows the top-level screens (Home, Tasks, Settings) as a bottom bar in portrait and a navigation rail on wider windows such as landscape. Navigation Compose (`NavHost` in `AppNavigation.kt`, routes in `Routes.kt`) shows the screens. Home and Settings are nested graphs, so a tab stays selected while one of its inner pages is open, and each tab keeps its own back stack: leaving a tab and coming back returns to the page it was on.
+
+- **Home** (`home/log`) shows one day's log under a row with the day. Tapping the row opens **Dates** (`home/dates`), a list of the days that have a log file, newest first, with today always listed. The day Home is showing has a tick. Tapping a day moves the tick to it and stays on the page; going back with the arrow shows that day's log on Home. The day is passed to Home through the previous entry's `savedStateHandle` (key `picked_day`, none means today). Swiping a day with a log to the left (`SwipeToDelete`) reveals a red Delete button, which deletes that day's file; if Home was showing that day, it goes back to today.
+- **Settings** (`settings/list`) lists Server IP Addresses, Server Port and Name. The first row opens **Server IP Addresses** (`settings/server-ip-addresses`), a list of the phone's IPv4 addresses with their interface names.
+- Screens change without an animation. Going back only acts while the page is resumed, so a fast double tap can't pop past the start screen and leave a blank page. Opening a page is single top, so a double tap opens it once.
+- Every screen has its own `Scaffold` and top bar, and a list page is one `LazyColumn` of rows (`WListItem`, or `ListItem` for the text fields). The Dates and Server IP Addresses lists have dividers inset by 16 dp, and Home has one under the day row. Settings has none.
 
 ## Data flow
 

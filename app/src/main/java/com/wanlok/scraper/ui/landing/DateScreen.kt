@@ -37,8 +37,8 @@ import kotlinx.coroutines.withContext
 private val sampleDays = setOf("20261110", "20261109", "20261105")
 
 /**
- * The days that have logs, newest first. Picking one shows that day's log on Home. The day
- * Home is showing now, [selectedDay], has a tick. Swiping a day with logs to the left
+ * The days that have logs, newest first. Picking one calls [onPick] and stays on the page, and
+ * Home shows that day's log when the user goes back. The picked day, [selectedDay], has a tick. Swiping a day with logs to the left
  * reveals a Delete button, which deletes that day's log and then calls [onDeleted].
  */
 @OptIn(ExperimentalMaterial3Api::class)

@@ -31,7 +31,7 @@ Every event adds a log `{ "date": <ISO 8601 date and time, e.g. "2026-10-31T11:0
 10:22:40  TASK_COMPLETED       Cards
 ``` This format is expected to change.
 
-Logs are saved in one file per day, `logs/yyyyMMdd.txt` (app private storage), one JSON object per line. The screen shows today's logs and reloads today's file when the app starts. Old files are not deleted automatically. Lines in the old plain-text format are skipped when loading.
+Logs are saved in one file per day, `logs/yyyyMMdd.txt` (app private storage), one JSON object per line. The screen shows today's logs and reloads today's file when the app starts. Old files are not deleted automatically, but a day's file can be deleted by swiping its row to the left on the Dates page. Tapping the day row on Home opens that page to show another day. Lines in the old plain-text format are skipped when loading.
 
 ## Known limits
 - 15 minutes is WorkManager's minimum and a target, not a promise: Doze, battery saver and some phone makers delay runs.
