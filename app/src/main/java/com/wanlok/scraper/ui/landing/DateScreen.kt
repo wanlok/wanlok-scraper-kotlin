@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,7 +38,7 @@ private val sampleDays = setOf("20261110", "20261109", "20261105")
 
 /**
  * The days that have logs, newest first. Picking one shows that day's log on Home. The day
- * Home is showing now, [selectedDay], is highlighted. Swiping a day with logs to the left
+ * Home is showing now, [selectedDay], has a tick. Swiping a day with logs to the left
  * reveals a Delete button, which deletes that day's log and then calls [onDeleted].
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,7 +98,12 @@ fun DateScreen(
                     WListItem(
                         text = LogDays.title(day),
                         onClick = { onPick(day) },
-                        selected = day == selectedDay
+                        // A tick on the day Home is showing, and nothing on the others.
+                        trailing = if (day == selectedDay) {
+                            { Icon(Icons.Default.Check, contentDescription = "Selected") }
+                        } else {
+                            null
+                        }
                     )
                 }
                 // A day without a log file, such as today before anything is logged, has

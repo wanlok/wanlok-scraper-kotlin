@@ -6,7 +6,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,28 +14,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.wanlok.scraper.ui.theme.ScraperTheme
 
 /**
- * A list row that does something when tapped: the text on the left and a right arrow on the
- * right. It has no background of its own, unless it is [selected], which highlights it.
+ * A list row that does something when tapped: the text on the left and a [trailing] part on the
+ * right, a right arrow unless something else (or null, for nothing) is given. It has no
+ * background of its own.
  */
 @Composable
 fun WListItem(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    selected: Boolean = false
+    trailing: (@Composable () -> Unit)? = {
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+    }
 ) {
     ListItem(
         headlineContent = { Text(text) },
-        trailingContent = {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
-        },
-        colors = ListItemDefaults.colors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                Color.Transparent
-            }
-        ),
+        trailingContent = trailing,
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = modifier.clickable(onClick = onClick)
     )
 }
