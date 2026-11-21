@@ -24,6 +24,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -60,6 +61,9 @@ class ServerService : Service() {
     }
 
     private suspend fun startServer() {
+        // After a restart the old server may still be stopping. Wait, so its STOPPED log comes
+        // before this server's STARTED.
+        pendingStop?.join()
         // The port is read each time the server starts, so a new port applies after a restart.
         val port = SettingsRepository.port(this).first()
         val address = "http://${NetworkAddress.localIpv4(this) ?: "localhost"}:$port"
@@ -85,7 +89,8 @@ class ServerService : Service() {
         _running.value = false
         val running = server
         server = null
-        scope.launch {
+        // Kept, so a server started right after this one (a restart) waits for it to finish.
+        pendingStop = scope.launch {
             if (running != null) {
                 running.stop(gracePeriodMillis = 500, timeoutMillis = 1_000)
                 LogRepository.append(applicationContext, LogStatus.STOPPED, "Web server")
@@ -125,6 +130,10 @@ class ServerService : Service() {
         private const val NOTIFICATION_ID = 1
 
         private val _running = MutableStateFlow(false)
+
+        // The stop of the last server that was destroyed.
+        @Volatile
+        private var pendingStop: Job? = null
 
         /**
          * True while the web server is serving. It is kept in memory, so it is false again when the
