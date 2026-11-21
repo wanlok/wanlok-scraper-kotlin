@@ -10,9 +10,11 @@ import com.wanlok.scraper.work.PageScraper
 import com.wanlok.scraper.work.ScrapeException
 import com.wanlok.scraper.work.TaskRunner
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receiveText
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -26,6 +28,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.net.URI
 import java.net.URISyntaxException
+import java.net.URLEncoder
 
 private const val DEFAULT_SNAPSHOTS = 100
 private const val MAX_SNAPSHOTS = 1000
@@ -100,6 +103,21 @@ fun Route.taskRoutes(context: Context) {
             }
             call.respondText(
                 TaskRepository.toJson(task).put("snapshots", snapshots).toString(),
+                ContentType.Application.Json
+            )
+        }
+
+        // The task as a file: { name, url, page_selector?, data_selector, enabled }, with no id and
+        // no snapshots. A browser saves it as <name>.json. POST /api/tasks takes the same body, which
+        // is how a file is imported.
+        get("{id}/export") {
+            TaskRepository.load(context)
+            val id = call.parameters["id"].orEmpty()
+            val task = TaskRepository.tasks.value.firstOrNull { it.id == id }
+                ?: return@get call.respondError("No task with that id", HttpStatusCode.NotFound)
+            call.response.header(HttpHeaders.ContentDisposition, attachment(task.name))
+            call.respondText(
+                TaskRepository.toExportJson(task).toString(2),
                 ContentType.Application.Json
             )
         }
@@ -196,6 +214,17 @@ private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
         return null
     }
     return TaskInput(name, url, pageSelector, dataSelector, enabled)
+}
+
+/**
+ * A Content-Disposition value that saves the response as <name>.json. The plain filename keeps to
+ * letters, digits, spaces, dots, dashes and underscores, since a header is ASCII, and the
+ * filename* form carries the real name for browsers that read it.
+ */
+private fun attachment(name: String): String {
+    val plain = name.replace(Regex("[^A-Za-z0-9 ._-]"), "_").trim().ifEmpty { "task" }
+    val encoded = URLEncoder.encode(name, "UTF-8").replace("+", "%20")
+    return "attachment; filename=\"$plain.json\"; filename*=UTF-8''$encoded.json"
 }
 
 private fun isHttpUrl(url: String): Boolean = try {

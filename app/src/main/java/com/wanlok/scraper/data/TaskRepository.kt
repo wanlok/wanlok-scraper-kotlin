@@ -102,6 +102,12 @@ object TaskRepository {
         .put("data_selector", task.dataSelector.toJson())
         .put("enabled", task.enabled)
 
+    /**
+     * A task as a file to share: what it does, without the id (the phone that imports it gives it
+     * a new one) or its snapshots. It is the body that POST /api/tasks takes.
+     */
+    fun toExportJson(task: Task): JSONObject = toJson(task).apply { remove("id") }
+
     fun toJson(tasks: List<Task>): String {
         val array = JSONArray()
         tasks.forEach { array.put(toJson(it)) }
