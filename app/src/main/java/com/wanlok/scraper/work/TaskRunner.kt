@@ -33,6 +33,9 @@ object TaskRunner {
     // For runs that are started without waiting for them, see runOneInBackground.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** Whether the task is being run now, by the periodic job or by [runOneInBackground]. */
+    fun isRunning(taskId: String): Boolean = taskId in running
+
     /**
      * Runs every enabled task, one at a time. A task that is not enabled is logged and skipped, with
      * no snapshot, and so is a task that is already being run by [runOneInBackground]. A task that

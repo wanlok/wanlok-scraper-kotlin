@@ -88,7 +88,8 @@ fun Route.taskRoutes(context: Context) {
             )
         }
 
-        // One task with its snapshots, newest first. ?limit= sets how many snapshots.
+        // One task with its snapshots, newest first. ?limit= sets how many snapshots. "running" says
+        // whether the task is being run now, so a page can keep its Run button off until it is done.
         get("{id}") {
             TaskRepository.load(context)
             val id = call.parameters["id"].orEmpty()
@@ -102,7 +103,10 @@ fun Route.taskRoutes(context: Context) {
                 snapshots.put(SnapshotRepository.toJson(it))
             }
             call.respondText(
-                TaskRepository.toJson(task).put("snapshots", snapshots).toString(),
+                TaskRepository.toJson(task)
+                    .put("running", TaskRunner.isRunning(task.id))
+                    .put("snapshots", snapshots)
+                    .toString(),
                 ContentType.Application.Json
             )
         }
