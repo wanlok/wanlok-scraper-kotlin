@@ -33,8 +33,8 @@ com.wanlok.scraper
     ├── LogRepository.kt       today's logs shown on screen, saved as JSON lines, one file per day; also reads, lists and deletes the files of other days
     ├── IpAddresses.kt         the phone's IPv4 addresses with their interface names
     ├── SettingsRepository.kt  saved settings (DataStore Preferences)
-    ├── Task.kt                a scraping task: id, name, url, pageSelector (optional), dataSelector (text extraction only), enabled (false = runs skip it)
-    ├── Enabled.kt             reads the enabled field of the API body (left out = true, not a boolean = error)
+    ├── Task.kt                a scraping task: id, name, url, pageSelector (optional), dataSelector (text extraction only), scheduled (false = the periodic job skips it)
+    ├── Scheduled.kt           reads the scheduled field of the API body (left out = true, not a boolean = error)
     ├── PageSelector.kt        how to find the pages of a list: pagination link selector -> page query parameter
     ├── DataSelector.kt        what a task reads: one CSS selector, or a container with named fields
     ├── TaskRepository.kt      the saved tasks (tasks.json)

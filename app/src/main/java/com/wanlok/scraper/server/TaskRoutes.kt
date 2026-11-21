@@ -2,8 +2,8 @@ package com.wanlok.scraper.server
 
 import android.content.Context
 import com.wanlok.scraper.data.DataSelector
-import com.wanlok.scraper.data.Enabled
 import com.wanlok.scraper.data.PageSelector
+import com.wanlok.scraper.data.Scheduled
 import com.wanlok.scraper.data.SnapshotRepository
 import com.wanlok.scraper.data.TaskRepository
 import com.wanlok.scraper.work.PageScraper
@@ -111,7 +111,7 @@ fun Route.taskRoutes(context: Context) {
             )
         }
 
-        // The task as a file: { name, url, page_selector?, data_selector, enabled }, with no id and
+        // The task as a file: { name, url, page_selector?, data_selector, scheduled }, with no id and
         // no snapshots. A browser saves it as <name>.json. POST /api/tasks takes the same body, which
         // is how a file is imported.
         get("{id}/export") {
@@ -129,7 +129,7 @@ fun Route.taskRoutes(context: Context) {
         post {
             val input = call.receiveTaskInput() ?: return@post
             val task = TaskRepository.add(
-                context, input.name, input.url, input.pageSelector, input.dataSelector, input.enabled
+                context, input.name, input.url, input.pageSelector, input.dataSelector, input.scheduled
             )
             call.respondText(
                 TaskRepository.toJson(task).toString(),
@@ -142,7 +142,7 @@ fun Route.taskRoutes(context: Context) {
             val input = call.receiveTaskInput() ?: return@put
             val id = call.parameters["id"].orEmpty()
             val task = TaskRepository.update(
-                context, id, input.name, input.url, input.pageSelector, input.dataSelector, input.enabled
+                context, id, input.name, input.url, input.pageSelector, input.dataSelector, input.scheduled
             )
             if (task != null) {
                 call.respondText(
@@ -171,7 +171,7 @@ private data class TaskInput(
     val url: String,
     val pageSelector: PageSelector?,
     val dataSelector: DataSelector,
-    val enabled: Boolean
+    val scheduled: Boolean
 )
 
 /** Reads and validates a task from the request body. Responds 400 and returns null if invalid. */
@@ -210,14 +210,14 @@ private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
         respondError(e.message ?: "data_selector is not valid")
         return null
     }
-    // enabled is optional and means true when left out (or null).
-    val enabled = try {
-        Enabled.fromJson(if (body.isNull("enabled")) null else body.opt("enabled"))
+    // scheduled is optional and means true when left out (or null).
+    val scheduled = try {
+        Scheduled.fromJson(if (body.isNull("scheduled")) null else body.opt("scheduled"))
     } catch (e: IllegalArgumentException) {
-        respondError(e.message ?: "enabled is not valid")
+        respondError(e.message ?: "scheduled is not valid")
         return null
     }
-    return TaskInput(name, url, pageSelector, dataSelector, enabled)
+    return TaskInput(name, url, pageSelector, dataSelector, scheduled)
 }
 
 /**

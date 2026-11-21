@@ -37,7 +37,7 @@ object TaskRunner {
     fun isRunning(taskId: String): Boolean = taskId in running
 
     /**
-     * Runs every enabled task, one at a time. A task that is not enabled is logged and skipped, with
+     * Runs every scheduled task, one at a time. A task that is not scheduled is logged and skipped, with
      * no snapshot, and so is a task that is already being run by [runOneInBackground]. A task that
      * fails doesn't stop the others.
      */
@@ -45,7 +45,7 @@ object TaskRunner {
         TaskRepository.load(context)
         TaskRepository.tasks.value.forEach { task ->
             if (running.add(task.id)) {
-                runClaimed(context, task, enabled = task.enabled)
+                runClaimed(context, task, scheduled = task.scheduled)
             } else {
                 LogRepository.append(context, LogStatus.TASK_SKIPPED, "${task.name}: already running")
             }
@@ -60,8 +60,8 @@ object TaskRunner {
         if (!running.add(task.id)) return false
         scope.launch {
             try {
-                // A run asked for by hand ignores the task's enabled flag.
-                runClaimed(context, task, enabled = true)
+                // A run asked for by hand ignores the task's scheduled flag.
+                runClaimed(context, task, scheduled = true)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -72,10 +72,10 @@ object TaskRunner {
         return true
     }
 
-    /** Runs a task whose id is in [running], or logs it as skipped if [enabled] is false. Then lets go of it. */
-    private suspend fun runClaimed(context: Context, task: Task, enabled: Boolean) {
+    /** Runs a task whose id is in [running], or logs it as skipped if [scheduled] is false. Then lets go of it. */
+    private suspend fun runClaimed(context: Context, task: Task, scheduled: Boolean) {
         try {
-            if (enabled) {
+            if (scheduled) {
                 run(context, task)
             } else {
                 LogRepository.append(context, LogStatus.TASK_SKIPPED, task.name)

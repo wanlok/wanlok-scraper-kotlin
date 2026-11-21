@@ -6,26 +6,26 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 
-class EnabledTest {
+class ScheduledTest {
     @Test
-    fun leftOutMeansEnabled() {
-        assertTrue(Enabled.fromJson(null))
+    fun leftOutMeansScheduled() {
+        assertTrue(Scheduled.fromJson(null))
     }
 
     @Test
     fun trueAndFalseAreKept() {
-        assertTrue(Enabled.fromJson(true))
-        assertFalse(Enabled.fromJson(false))
+        assertTrue(Scheduled.fromJson(true))
+        assertFalse(Scheduled.fromJson(false))
     }
 
     @Test
     fun anythingButABooleanIsRejected() {
         listOf("false", "true", 0, 1, emptyList<Any>()).forEach { value ->
             try {
-                Enabled.fromJson(value)
+                Scheduled.fromJson(value)
                 fail("$value should be rejected")
             } catch (e: IllegalArgumentException) {
-                assertEquals("enabled must be true or false", e.message)
+                assertEquals("scheduled must be true or false", e.message)
             }
         }
     }

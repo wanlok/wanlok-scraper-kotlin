@@ -4,7 +4,7 @@ package com.wanlok.scraper.data
  * A scraping task: load [url] and read what [dataSelector] describes (CSS selectors, e.g. copied
  * from the browser's DevTools). For a list spread over several pages, the optional [pageSelector]
  * finds the other pages of the list that starts at [url], and each page is read in turn. Without
- * it only [url] is read. A task that is not [enabled] is skipped when the tasks run.
+ * it only [url] is read. A task that is not [scheduled] is skipped by the periodic job, but can still be run by hand.
  */
 data class Task(
     val id: String,
@@ -12,5 +12,5 @@ data class Task(
     val url: String,
     val pageSelector: PageSelector?,
     val dataSelector: DataSelector,
-    val enabled: Boolean
+    val scheduled: Boolean
 )

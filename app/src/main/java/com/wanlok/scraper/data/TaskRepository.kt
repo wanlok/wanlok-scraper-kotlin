@@ -39,7 +39,7 @@ object TaskRepository {
         url: String,
         pageSelector: PageSelector?,
         dataSelector: DataSelector,
-        enabled: Boolean
+        scheduled: Boolean
     ): Task {
         load(context)
         val task = Task(
@@ -48,7 +48,7 @@ object TaskRepository {
             url = url.trim(),
             pageSelector = pageSelector,
             dataSelector = dataSelector,
-            enabled = enabled
+            scheduled = scheduled
         )
         val updated = _tasks.value + task
         _tasks.value = updated
@@ -65,7 +65,7 @@ object TaskRepository {
         url: String,
         pageSelector: PageSelector?,
         dataSelector: DataSelector,
-        enabled: Boolean
+        scheduled: Boolean
     ): Task? {
         load(context)
         val current = _tasks.value
@@ -76,7 +76,7 @@ object TaskRepository {
             url = url.trim(),
             pageSelector = pageSelector,
             dataSelector = dataSelector,
-            enabled = enabled
+            scheduled = scheduled
         )
         val updated = current.map { if (it.id == id) task else it }
         _tasks.value = updated
@@ -100,7 +100,7 @@ object TaskRepository {
         .put("url", task.url)
         .apply { task.pageSelector?.let { put("page_selector", it.toJson()) } }
         .put("data_selector", task.dataSelector.toJson())
-        .put("enabled", task.enabled)
+        .put("scheduled", task.scheduled)
 
     /**
      * A task as a file to share: what it does, without the id (the phone that imports it gives it
@@ -128,7 +128,7 @@ object TaskRepository {
                     null
                 },
                 dataSelector = DataSelector.fromJson(item.opt("data_selector")),
-                enabled = item.getBoolean("enabled")
+                scheduled = item.getBoolean("scheduled")
             )
         }
     } catch (e: JSONException) {
