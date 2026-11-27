@@ -5,6 +5,7 @@ import com.wanlok.scraper.data.DataSelector
 import com.wanlok.scraper.data.PageSelector
 import com.wanlok.scraper.data.Scheduled
 import com.wanlok.scraper.data.SnapshotRepository
+import com.wanlok.scraper.data.Task
 import com.wanlok.scraper.data.TaskRepository
 import com.wanlok.scraper.work.PageScraper
 import com.wanlok.scraper.work.ScrapeException
@@ -35,19 +36,33 @@ private const val MAX_SNAPSHOTS = 1000
 
 /** The task API used by the desktop page. Everything is JSON. */
 fun Route.taskRoutes(context: Context) {
-    // Runs one task now, the same way the periodic job does. Handy for testing. Different tasks can
-    // run at the same time, but not the same task twice.
-    // The run takes as long as the pages take, so this returns at once. The outcome is in the Home log.
-    post("/api/run/{id}") {
-        TaskRepository.load(context)
-        val id = call.parameters["id"].orEmpty()
-        val task = TaskRepository.tasks.value.firstOrNull { it.id == id }
-            ?: return@post call.respondError("No task with that id", HttpStatusCode.NotFound)
-        if (TaskRunner.runOneInBackground(context, task)) {
-            call.respond(HttpStatusCode.Accepted)
-        } else {
-            call.respondError("A run is already in progress for this task", HttpStatusCode.Conflict)
+    // Runs the task in the body now and answers with the snapshot it produced. The body is a task, as
+    // for POST /api/tasks. With an "id" the snapshot is saved under that saved task (404 if there is
+    // none, 409 if it is already running). Without one nothing is saved. It waits for the run, which
+    // takes as long as the pages take. Progress is in the Home log.
+    post("/api/run") {
+        val input = call.receiveTaskInput() ?: return@post
+        val id = input.id
+        if (id != null) {
+            TaskRepository.load(context)
+            if (TaskRepository.tasks.value.none { it.id == id }) {
+                return@post call.respondError("No task with that id", HttpStatusCode.NotFound)
+            }
         }
+        val task = Task(
+            id.orEmpty(), input.name, input.url, input.pageSelector, input.dataSelector, input.scheduled
+        )
+        val snapshot = if (id == null) {
+            TaskRunner.runUnsaved(context, task)
+        } else {
+            TaskRunner.runSaved(context, task) ?: return@post call.respondError(
+                "A run is already in progress for this task", HttpStatusCode.Conflict
+            )
+        }
+        call.respondText(
+            SnapshotRepository.toJson(snapshot).toString(),
+            ContentType.Application.Json
+        )
     }
 
     // Works out the URLs of all the pages of a list from its pagination links. Handy for testing a
@@ -167,6 +182,7 @@ fun Route.taskRoutes(context: Context) {
 }
 
 private data class TaskInput(
+    val id: String?,
     val name: String,
     val url: String,
     val pageSelector: PageSelector?,
@@ -217,7 +233,9 @@ private suspend fun ApplicationCall.receiveTaskInput(): TaskInput? {
         respondError(e.message ?: "scheduled is not valid")
         return null
     }
-    return TaskInput(name, url, pageSelector, dataSelector, scheduled)
+    // The id is only used by POST /api/run, to say which saved task the snapshot belongs to.
+    val id = if (body.isNull("id")) null else body.optString("id")
+    return TaskInput(id, name, url, pageSelector, dataSelector, scheduled)
 }
 
 /**

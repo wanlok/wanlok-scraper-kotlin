@@ -8,12 +8,7 @@ import com.wanlok.scraper.data.Snapshot
 import com.wanlok.scraper.data.SnapshotRepository
 import com.wanlok.scraper.data.Task
 import com.wanlok.scraper.data.TaskRepository
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
 
@@ -26,20 +21,15 @@ object TaskRunner {
     // Keeps the load on the site low when a task has several pages.
     private const val PAGE_PAUSE_MS = 1_000L
 
-    // The ids of the tasks being run now. A task is never run twice at once, so two runs never save
-    // snapshots of the same task together, but different tasks can run in parallel.
+    // The ids of the saved tasks being run by the periodic job now, so it never runs one twice.
     private val running = ConcurrentHashMap.newKeySet<String>()
 
-    // For runs that are started without waiting for them, see runOneInBackground.
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
-    /** Whether the task is being run now, by the periodic job or by [runOneInBackground]. */
+    /** Whether the periodic job is running the task now. */
     fun isRunning(taskId: String): Boolean = taskId in running
 
     /**
      * Runs every scheduled task, one at a time. A task that is not scheduled is logged and skipped, with
-     * no snapshot, and so is a task that is already being run by [runOneInBackground]. A task that
-     * fails doesn't stop the others.
+     * no snapshot, and so is a task that is already being run. A task that fails doesn't stop the others.
      */
     suspend fun runAll(context: Context) {
         TaskRepository.load(context)
@@ -53,23 +43,41 @@ object TaskRunner {
     }
 
     /**
-     * Starts the task and returns at once. The outcome is in the log. Returns false, without
-     * starting, if the task is already being run.
+     * Runs a saved task, whatever its scheduled flag, saves the snapshot and returns it. Returns
+     * null, without running, if the task is already being run. The task's id says where the
+     * snapshot goes, and its other fields are what is run, so they need not match the saved task.
      */
-    fun runOneInBackground(context: Context, task: Task): Boolean {
-        if (!running.add(task.id)) return false
-        scope.launch {
-            try {
-                // A run asked for by hand ignores the task's scheduled flag.
-                runClaimed(context, task, scheduled = true)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // Nobody is waiting for this run, so an unexpected error is logged, not thrown.
-                LogRepository.append(context, LogStatus.TASK_FAILED, "Run failed: ${e.message}")
-            }
+    suspend fun runSaved(context: Context, task: Task): Snapshot? {
+        if (!running.add(task.id)) return null
+        try {
+            return runUnsaved(context, task).also { SnapshotRepository.append(context, task.id, it) }
+        } finally {
+            running.remove(task.id)
         }
-        return true
+    }
+
+    /**
+     * Runs a task that is not saved, whatever its scheduled flag, and returns what it produced: a
+     * completed snapshot or a failed one. Nothing is stored. The outcome is logged like any run.
+     */
+    suspend fun runUnsaved(context: Context, task: Task): Snapshot {
+        LogRepository.append(context, LogStatus.TASK_RUNNING, task.name)
+        val snapshot = try {
+            val data = scrapeAllPages(context, task)
+            if (data.isEmpty()) {
+                Snapshot(Date(), LogStatus.TASK_FAILED, error = "data selector matched nothing")
+            } else {
+                Snapshot(Date(), LogStatus.TASK_COMPLETED, data = data)
+            }
+        } catch (e: ScrapeException) {
+            Snapshot(Date(), LogStatus.TASK_FAILED, error = e.message ?: "scrape failed")
+        }
+        if (snapshot.status == LogStatus.TASK_COMPLETED) {
+            LogRepository.append(context, LogStatus.TASK_COMPLETED, task.name)
+        } else {
+            LogRepository.append(context, LogStatus.TASK_FAILED, "${task.name}: ${snapshot.error}")
+        }
+        return snapshot
     }
 
     /** Runs a task whose id is in [running], or logs it as skipped if [scheduled] is false. Then lets go of it. */
